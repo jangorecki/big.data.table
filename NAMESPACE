@@ -23,8 +23,8 @@ export(bdt.assign)
 export(bdt.partition)
 # others
 export(is.big.data.table)
-export(as.rscl)
-export(is.rscl)
+export(rsc)
+export(is.rsc)
 export(rbindlapply)
 # re-export
 export(Rserve)

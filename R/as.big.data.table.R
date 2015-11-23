@@ -6,7 +6,7 @@ nondotnames = function(x){
 # big.data.table ----
 
 big.data.table = function(x, rscl, partitions){
-    stopifnot(is.rscl(rscl, silent=FALSE))
+    stopifnot(is.rsc(rscl, silent=FALSE))
     bdt = if(!missing(x) && !is.null(x)){
         stopifnot(is.data.table(x))
         x[0L]
@@ -26,27 +26,26 @@ as.big.data.table = function(x, ...){
     UseMethod("as.big.data.table")
 }
 
-# .call / .function - having cluster working and source data in csv on disk of each node ----
-
-as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
-    # execute function on nodes
-    assign_x = call("<-", as.name("x"), x)
-    bdt.eval(rscl, qexpr = assign_x, send = TRUE, parallel = parallel)
-    #lapply(rscl, RS.eval, assign_x, lazy = FALSE)
-    # redirect to list method
-    as.big.data.table(x = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
-}
+# .function / .call - having cluster working and source data in csv on disk of each node ----
 
 as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
     fun.args = match.call(expand.dots = FALSE)$`...`
     qcall = as.call(c(list(x), fun.args))
-    as.big.data.table(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
+    as.big.data.table(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, lazy = FALSE, parallel = parallel)
+}
+
+as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
+    # execute function on nodes
+    assign_x = substitute(x <- qcall, list(qcall = x))
+    bdt.eval(rscl, expr = assign_x, lazy = FALSE, send = TRUE, parallel = parallel)
+    # redirect to list method
+    as.big.data.table(x = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
 
 # .list - having cluster working and loaded with data already ----
 
 as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, ...){
-    stopifnot(is.rscl(x, silent=FALSE))
+    stopifnot(is.rsc(x, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table
     if(missing(partitions) || !length(partitions)) partitions = data.table(NULL)
     if(missing(partition.by) || !length(partition.by)) partition.by = character(0)
@@ -70,7 +69,7 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
     if(length(partition.by) && !length(partitions)){
         qpartition = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE],
                                 list(partition.by = partition.by))
-        partitions = unique(bdt.eval(x, qexpr = qpartition, parallel = parallel), by = partition.by)
+        partitions = unique(bdt.eval(x, expr = qpartition, lazy = TRUE, parallel = parallel), by = partition.by)
     }
     # return big.data.table class
     bdt = RS.eval(x[[1L]], x[0L])
@@ -80,7 +79,7 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
 # .data.table - having data loaded locally in R ----
 
 as.big.data.table.data.table = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
-    stopifnot(is.rscl(rscl, silent=FALSE))
+    stopifnot(is.rsc(rscl, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table
     if(missing(partitions) || !length(partitions)) partitions = data.table(NULL)
     if(missing(partition.by) || !length(partition.by)) partition.by = character(0)

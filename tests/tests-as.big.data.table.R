@@ -4,7 +4,7 @@ library(big.data.table)
 
 # connect
 port = 9411:9414
-rscl = as.rscl(port)
+rscl = rsc(port)
 # sapply(rscl, RS.close)
 # sapply(rscl, RS.collect)
 # sapply(rscl, function(x) try(RS.collect(x), silent=TRUE))

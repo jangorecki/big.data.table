@@ -28,22 +28,22 @@ is.big.data.table = function(x){
 #' @description Main engine for passing queries to nodes, control parallelization, rbinding or simplifing returned object. Allows to measure timing and verbose messages.
 #' @param x big.data.table.
 #' @param expr expression.
-#' @param qexpr quoted expression.
+#' @param lazy logical if TRUE then *expr* is substituted.
 #' @param send logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.
 #' @param simplify logical if *TRUE* (default) it will simplify list of 1 length same type objects to vector.
 #' @param rbind logical if *TRUE* (default) results are data.table they will be rbinded.
 #' @param try should be wrapped into tryCatch for errors and warnings? default (TRUE), means that warnings will not return the actual value.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
-bdt.eval = function(x, expr, qexpr, send = FALSE, simplify = TRUE, rbind = TRUE, try = FALSE, parallel = TRUE){
-    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE))
+bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, try = TRUE, parallel = TRUE){
+    stopifnot(is.big.data.table(x) || is.rsc(x, silent = TRUE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     if(isTRUE(getOption("bigdatatable.verbose"))){
         nnodes = length(rscl)
         ts = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) microbenchmarkCore::get_nanotime() else proc.time()[[3L]]
         cat(sprintf("big.data.table: submitting data.table queries to %s nodes %s.\n", nnodes, ifelse(isTRUE(parallel), "in parallel", "sequentially"), sep=""))
     }
-    expr = if(!missing(qexpr)) qexpr else substitute(expr)
+    if(isTRUE(lazy)) expr = substitute(expr)
     if(!missing(send) && isTRUE(send)) expr = call("{",expr, TRUE)
     if(!missing(try) && isTRUE(try)) expr = substitute(tryCatch(expr, error = function(e) e, warning = function(w) w), list(expr=expr))
     if(!parallel){
@@ -74,7 +74,7 @@ bdt.eval = function(x, expr, qexpr, send = FALSE, simplify = TRUE, rbind = TRUE,
 }
 
 bdt.assign = function(x, name, value, parallel = TRUE){
-    stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
+    stopifnot(is.big.data.table(x) || is.rsc(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
     if(is.data.table(value) && isTRUE(getOption("bigdatatable.verbose"))){
@@ -123,7 +123,7 @@ bdt.assign = function(x, name, value, parallel = TRUE){
 #' @param parallel, see `bdt.eval`.
 #' @return big.data.table
 bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, parallel = TRUE){
-    stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
+    stopifnot(is.big.data.table(x) || is.rsc(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
     partitions = if(is.big.data.table(x)) attr(x, "partitions") else data.table(NULL)
@@ -132,7 +132,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
         partition.by = nondotnames(partitions)
         # update partitions
         qcall = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by=partition.by))
-        x = big.data.table(x = force.data.table(x)[0L], rscl = rscl, partitions = unique(bdt.eval(x, qexpr = qcall, parallel=parallel), by = partition.by))
+        x = big.data.table(x = force.data.table(x)[0L], rscl = rscl, partitions = unique(bdt.eval(x, expr = qcall, lazy = TRUE, parallel=parallel), by = partition.by))
     }
     if(isTRUE(copy)){
         lapply(seq_len(nnodes), function(i){
@@ -140,7 +140,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
             cat(sprintf("big.data.table: processing %s of %s nodes.\n", i, nnodes))
             # check if anything to copy
             qcall = substitute(x[!partition.key], list(partition.key=partitions[i]))
-            tmp = bdt.eval(rscl[i], qexpr = qcall, parallel=FALSE)
+            tmp = bdt.eval(rscl[i], expr = qcall, lazy = TRUE, parallel=FALSE)
             if(nrow(tmp)){
                 # send it to potentially multiple nodes
                 bdt.assign(x, name = "x", tmp, parallel = parallel)
@@ -153,7 +153,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     }
     if(validate){
         qcall = quote(nrow(unique(x, by = partition.by))==1L)
-        r = bdt.eval(x, qexpr = qcall, parallel = parallel)
+        r = bdt.eval(x, expr = qcall, lazy = TRUE, parallel = parallel)
         if(!all(r)) stop(sprintf("big.data.table partitioning has been finished but validation of data didn't pass for %s nodes.", which(!r)))
     }
     return(x)
@@ -169,15 +169,17 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     dtq = match.call(expand.dots = FALSE)$`...`
     dtcall = as.call(c(list(as.symbol("["), x = as.name("x")), dtq))
     # bdt node eval
-    x = bdt.eval(x, qexpr = dtcall, parallel = parallel)
+    x = bdt.eval(x, expr = dtcall,  lazy = TRUE, parallel = parallel)
     # aggregate results from nodes
-    return(eval(dtcall))
+    r = eval(dtcall)
+    return(r)
 }
 
 #' @title Extract from big.data.table
 #' @param x big.data.table object.
 #' @param j numeric scalar, if provided then all other arguments are ignored and subset behaves the same way as for data.table, but returns 0 length column.
 #' @param expr expression to be evaluated on node where data.table objects are stored as `x` variable in `.GlobalEnv`.
+#' @param lazy logical if TRUE then *expr* is substituted.
 #' @param send logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.
 #' @param i numeric restrict expression to particular nodes
 #' @param ... ignored.
@@ -185,11 +187,11 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @param rbind logical passed to `bdt.eval`, affects the type of returned object.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.
-"[[.big.data.table" = function(x, j, expr, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE){
+"[[.big.data.table" = function(x, j, expr, lazy = FALSE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE){
     # when `j` provided it return empty column from bdt to get a class of column
     if(!missing(j) && !is.null(j) && is.numeric(j)) return(unclass(x)[[j]])
-    qexpr = substitute(expr)
+    if(isTRUE(lazy)) expr = substitute(expr)
     rscl = attr(x, "rscl")
     if(missing(i)) i = seq_along(rscl)
-    bdt.eval(rscl[i], qexpr = qexpr, send = send, simplify = simplify, rbind = rbind, parallel = parallel)
+    bdt.eval(rscl[i], expr = expr, lazy = TRUE, send = send, simplify = simplify, rbind = rbind, parallel = parallel)
 }

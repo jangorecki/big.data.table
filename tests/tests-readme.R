@@ -4,8 +4,8 @@ library(big.data.table)
 
 # connecet
 port = 9411:9414
-rscl = as.rscl(port)
-stopifnot(is.rscl(rscl))
+rscl = rsc(port)
+stopifnot(is.rsc(rscl))
 
 # populate source data
 lapply(rscl, RS.eval, write.csv(iris, file = "data.csv", row.names = FALSE))

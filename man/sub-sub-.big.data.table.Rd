@@ -3,7 +3,7 @@
 \alias{[[.big.data.table}
 \title{Extract from big.data.table}
 \usage{
-\method{[[}{big.data.table}(x, j, expr, send = FALSE, i, ...,
+\method{[[}{big.data.table}(x, j, expr, lazy = FALSE, send = FALSE, i, ...,
   simplify = TRUE, rbind = TRUE, parallel = TRUE)
 }
 \arguments{
@@ -12,6 +12,8 @@
 \item{j}{numeric scalar, if provided then all other arguments are ignored and subset behaves the same way as for data.table, but returns 0 length column.}
 
 \item{expr}{expression to be evaluated on node where data.table objects are stored as `x` variable in `.GlobalEnv`.}
+
+\item{lazy}{logical if TRUE then *expr* is substituted.}
 
 \item{send}{logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.}
 

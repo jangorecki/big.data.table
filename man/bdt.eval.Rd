@@ -3,15 +3,15 @@
 \alias{bdt.eval}
 \title{big.data.table evaluate on nodes}
 \usage{
-bdt.eval(x, expr, qexpr, send = FALSE, simplify = TRUE, rbind = TRUE,
-  try = FALSE, parallel = TRUE)
+bdt.eval(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
+  rbind = TRUE, try = TRUE, parallel = TRUE)
 }
 \arguments{
 \item{x}{big.data.table.}
 
 \item{expr}{expression.}
 
-\item{qexpr}{quoted expression.}
+\item{lazy}{logical if TRUE then *expr* is substituted.}
 
 \item{send}{logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.}
 
