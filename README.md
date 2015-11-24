@@ -8,7 +8,7 @@ Package not yet published to repo, for now use install_github / git clone, R CMD
 install.packages("microbenchmarkCore", repos = "https://olafmersmann.github.io/drat")
 install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
 install.packages("data.table", repos = "https://cran.rstudio.com")
-# install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table)
+# install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table")
 ```
 
 # Usage
