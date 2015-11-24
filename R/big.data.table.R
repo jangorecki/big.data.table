@@ -6,22 +6,52 @@ force.data.table = function(x){
 }
 
 dim.big.data.table = function(x){
+    nodes.ok = is.big.data.table(x, check.nodes = TRUE)
+    if(!all(nodes.ok)) stop(sprintf("Variable 'x' data.table does not exist on %s nodes.", paste(which(!nodes.ok), collapse = ", ")))
     nc = length(x)
-    nr = sapply(attr(x,"rscl"), RS.eval, nrow(x))
+    nr = bdt.eval(x, nrow(x), lazy = TRUE, simplify = TRUE, rbind = FALSE)
     c(sum(nr), nc)
 }
-print.big.data.table = function(x, ...){
-    print(setDT(unclass(x)))
+
+print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quote = FALSE, ...){
+    dims = dim(x)
+    if(dims[[1L]] == 0L) {
+        if(dims[[2L]]==0L){
+            cat("Null data.table (0 rows and 0 cols)\n")
+        } else {
+            cat("Empty data.table (0 rows) of ",dims[[2L]]," col", if(dims[[2L]] > 1L) "s",": ", paste(head(names(x), 6), collapse=","), if(dims[[2L]] > 6) "...", "\n", sep="")
+        }
+        return(invisible())
+    }
+    rscl = attr(x, "rscl")
+    qh = substitute(head(x, topn), list(topn = topn))
+    head.dt = RS.eval(rscl[[1L]], qh, wait = TRUE, lazy = FALSE)
+    qt = substitute(tail(x, topn), list(topn = topn))
+    tail.dt = RS.eval(rscl[[length(rscl)]], qt, wait = TRUE, lazy = FALSE)
+    toprint = rbind(head.dt, tail.dt)
+    rn = c(seq_len(nrow(head.dt)), seq.int(to = dims[[1L]], length.out = nrow(tail.dt)))
+    toprint = format(toprint, ...)
+    rownames(toprint) = paste(format(rn, right=TRUE, scientific=FALSE), ":", sep="")
+    if(is.null(names(x))) colnames(toprint) = rep("NA", ncol(toprint))
+    toprint = rbind(head(toprint, nrow(head.dt)),"---"="", tail(toprint, nrow(tail.dt)))
+    rownames(toprint) = format(rownames(toprint), justify="right")
+    print(toprint, right=TRUE, quote=quote)
+    return(invisible())
 }
+
 str.big.data.table = function(object, ...){
     str(setDT(unclass(object)))
 }
 
 #' @title Test if big.data.table
 #' @param x R object.
+#' @param check.nodes logical default FALSE, when TRUE it will validate that nodes have *x* variable data.table
 #' @return TRUE if *x* inherits from *big.data.table*.
-is.big.data.table = function(x){
-    inherits(x, "big.data.table")
+is.big.data.table = function(x, check.nodes = FALSE){
+    if(!inherits(x, "big.data.table")) return(FALSE)
+    if(!check.nodes) return(TRUE)
+    is.node = quote(exists("x") && is.data.table(x))
+    return(bdt.eval(x, is.node, lazy = FALSE, simplify = TRUE, rbind = FALSE, parallel = FALSE))
 }
 
 #' @title big.data.table evaluate on nodes
@@ -67,7 +97,7 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
             timing = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) (microbenchmarkCore::get_nanotime() - ts) * 1e-9 else proc.time()[[3L]] - ts
             cat(sprintf("big.data.table: data binded in %.4f seconds.\n", timing), sep="")
         }
-    } else if(simplify && length(x[[1L]])==1 && is.atomic(x[[1L]])){
+    } else if(simplify && length(x) && length(x[[1L]])==1 && is.atomic(x[[1L]])){
         if(all(sapply(x, length)==1L) && all(sapply(x, is.atomic)) && length(unique(sapply(x, typeof)))==1L) x = simplify2array(x)
     }
     return(x)
@@ -87,17 +117,15 @@ bdt.assign = function(x, name, value, parallel = TRUE){
         rscid = seq_len(nnodes)
     }
     if(is.data.table(value)){
-        rscid = seq_len(min(nnodes, nrow(value)))
+        rscid = seq_len(nnodes)
         if(length(partitions)){
             value = lapply(rscid, function(i){
-                value[partitions[i], nomatch = 0L, on = key(partitions)]
+                if(i <= nrow(partitions)) value[partitions[i], nomatch = 0L, on = key(partitions)] else value[0L]
             })
         }
         if(!length(partitions)){
-            partition.map = cut(seq_len(nrow(value)), rscid[length(rscid)], labels = FALSE)
-            value = lapply(rscid, function(i){
-                value[partition.map==i]
-            })
+            partition.map = if(nrow(value)) cut(seq_len(nrow(value)), min(nnodes, nrow(value)), labels = FALSE) else integer()
+            value = lapply(rscid, function(i) value[partition.map==i])
         }
     }
     if(!parallel){
@@ -121,7 +149,7 @@ bdt.assign = function(x, name, value, parallel = TRUE){
 #' @param copy logical, default FALSE, or a data.table.
 #' @param validate if TRUE (default) it will validate that data are correctly partitioned.
 #' @param parallel, see `bdt.eval`.
-#' @return big.data.table
+#' @return big.data.table object.
 bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, parallel = TRUE){
     stopifnot(is.big.data.table(x) || is.rsc(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x

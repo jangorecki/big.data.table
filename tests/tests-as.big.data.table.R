@@ -54,9 +54,48 @@ stopifnot(
 
 dt = as.data.table(bdt)
 stopifnot(all.equal(
-    x[,.(value=sum(value), count=.N),, by = c("year","high","normal","low")],
-    dt[,.(value=sum(value), count=.N),, by = c("year","high","normal","low")]
+    x[,.(value=sum(value), count=.N),, c("year","high","normal","low")],
+    dt[,.(value=sum(value), count=.N),, c("year","high","normal","low")]
 ))
+
+# as.big.data.table - edge cases ----
+
+# data.table(NULL)
+dt = data.table(NULL)
+bdt = as.big.data.table(x = dt, rscl = rscl)
+stopifnot(
+    dim(dt)==c(0L,0L),
+    capture.output(print(bdt))=="Null data.table (0 rows and 0 cols)",
+    all(is.big.data.table(bdt, check.nodes = TRUE)),
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(0L,0L,0L,0L))
+)
+# data.table nrow < nodes
+dt = data.table(a=1:3)
+bdt = as.big.data.table(x = dt, rscl = rscl)
+stopifnot(
+    length(rscl) > nrow(dt),
+    identical(capture.output(print(bdt)), c("    a", " 1: 1", "---  ")),
+    all(is.big.data.table(bdt, check.nodes = TRUE)),
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,0L))
+)
+# data.table nrow == nodes
+dt = data.table(a=1:4)
+bdt = as.big.data.table(x = dt, rscl = rscl)
+stopifnot(
+    length(rscl) == nrow(dt),
+    identical(capture.output(print(bdt)), c("    a", " 1: 1", "---  ", " 4: 4")),
+    all(is.big.data.table(bdt, check.nodes = TRUE)),
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,1L))
+)
+# data.table nrow == nodes+1L
+dt = data.table(a=1:5)
+bdt = as.big.data.table(x = dt, rscl = rscl)
+stopifnot(
+    length(rscl)+1L == nrow(dt),
+    identical(capture.output(print(bdt)), c("    a", " 1: 1", " 2: 2", "---  ", " 5: 5")),
+    all(is.big.data.table(bdt, check.nodes = TRUE)),
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(2L,1L,1L,1L))
+)
 
 # closing workspace ----
 

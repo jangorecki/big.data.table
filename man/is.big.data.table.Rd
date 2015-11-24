@@ -3,10 +3,12 @@
 \alias{is.big.data.table}
 \title{Test if big.data.table}
 \usage{
-is.big.data.table(x)
+is.big.data.table(x, check.nodes = FALSE)
 }
 \arguments{
 \item{x}{R object.}
+
+\item{check.nodes}{logical default FALSE, when TRUE it will validate that nodes have *x* variable data.table}
 }
 \value{
 TRUE if *x* inherits from *big.data.table*.

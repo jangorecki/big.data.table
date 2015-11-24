@@ -18,7 +18,7 @@ bdt.partition(x, partition.by, copy = FALSE, validate = TRUE,
 \item{parallel,}{see `bdt.eval`.}
 }
 \value{
-big.data.table
+big.data.table object.
 }
 \description{
 By default function will validate if data partitioning is enforced on the nodes. It can also rearrange data between nodes to update partitioning.

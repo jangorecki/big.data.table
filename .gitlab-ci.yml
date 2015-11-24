@@ -1,0 +1,12 @@
+image: jangorecki/r-base-dev
+
+before_script:
+  - Rscript -e 'install.packages("microbenchmarkCore", repos = "https://olafmersmann.github.io/drat")'
+  - Rscript -e 'install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")'
+  - Rscript -e 'install.packages("data.table", repos = "https://cran.rstudio.com")'
+
+test:
+  script:
+    - R CMD build . --no-build-vignettes --no-manual
+    - PKG_FILE_NAME=$(ls -1t *.tar.gz | head -n 1)
+    - R CMD check "${PKG_FILE_NAME}" --no-build-vignettes --no-manual --as-cran

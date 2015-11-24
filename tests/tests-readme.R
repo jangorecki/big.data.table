@@ -47,12 +47,19 @@ gen.data = function(n = 5e4, seed = 123, ...){
 }
 bdt = as.big.data.table(x = gen.data, rscl = rscl)
 stopifnot(
+    # expected dims after aggregation
     dim(bdt[, .(value = sum(value))])==c(1L,1L),
     dim(bdt[, .(value = sum(value)), year])==c(4L,2L),
+    # parallel match to non-parallel
     all.equal(
         bdt[, .(value = sum(value)), .(year, high)],
         bdt[, .(value = sum(value)), .(year, high), parallel = FALSE]
-    )
+    ),
+    # expected print length
+    length(capture.output(print(bdt)))==12L,
+    length(capture.output(print(bdt, topn=2)))==6L,
+    length(capture.output(print(bdt, topn=1)))==4L,
+    length(capture.output(print(bdt, topn=10)))==22
 )
 
 # Features of big.data.table ----

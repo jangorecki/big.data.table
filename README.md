@@ -5,15 +5,10 @@ Distributed parallel computing on data.table.
 Package not yet published to repo, for now use install_github / git clone, R CMD build, R CMD INSTALL.  
 
 ```r
-install.packages("microbenchmarkCore", repos = paste0("https://",
-    c("olafmersmann.github.io/drat","cran.rstudio.com")
-))
-install.packages(c("RSclient","Rserve"), repos = paste0("https://",
-    c("www.rforge.net","cran.rstudio.com")
-))
-# install.packages("big.data.table", repos = paste0("https://",
-#     c("jangorecki.github.io/big.data.table","cran.rstudio.com")
-# ))
+install.packages("microbenchmarkCore", repos = "https://olafmersmann.github.io/drat")
+install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
+install.packages("data.table", repos = "https://cran.rstudio.com")
+# install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table)
 ```
 
 # Usage
@@ -42,6 +37,7 @@ lapply(rscl, RS.eval, ls())
 f = function() CJ(1:1e3,1:5e3) # 5M rows
 bdt = as.big.data.table(f, rscl = rscl)
 print(bdt)
+str(bdt)
 
 # populate csv data on nodes
 lapply(rscl, RS.eval, write.csv(iris, file = "data.csv", row.names = FALSE))
