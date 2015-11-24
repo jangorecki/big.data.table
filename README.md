@@ -2,13 +2,11 @@ Distributed parallel computing on data.table.
 
 # Installation
 
-Package not yet published to repo, for now use install_github / git clone, R CMD build, R CMD INSTALL.  
-
 ```r
 install.packages("microbenchmarkCore", repos = "https://olafmersmann.github.io/drat")
 install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
 install.packages("data.table", repos = "https://cran.rstudio.com")
-# install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table")
+install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table")
 ```
 
 # Usage
@@ -24,9 +22,6 @@ library(big.data.table)
 port = 9411:9414
 # start cluster
 invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
-
-# this may be helpful too
-options("bigdatatable.verbose"=TRUE)
 
 # wrapper to lapply on RS.connect with recycling
 rscl = rsc(port)
@@ -45,6 +40,7 @@ lapply(rscl, RS.eval, write.csv(iris, file = "data.csv", row.names = FALSE))
 f = function(file = "data.csv") fread(input = file)
 bdt = as.big.data.table(f, rscl = rscl)
 print(bdt)
+str(bdt)
 
 # clean up
 sapply(rscl, RS.eval, rm(x))
@@ -55,6 +51,7 @@ sapply(rscl, RS.eval, file.remove("data.csv"))
 qcall = quote(data.table(iris))
 bdt = as.big.data.table(qcall, rscl = rscl)
 print(bdt)
+str(bdt)
 
 sapply(rscl, RS.eval, rm(x))
 rm(bdt)
@@ -63,10 +60,12 @@ rm(bdt)
 dt = data.table(iris)
 bdt = as.big.data.table(dt, rscl = rscl)
 print(bdt)
+str(bdt)
 
 # from list - data must be already in the node R session
 bdt = as.big.data.table(x = rscl)
 print(bdt)
+str(bdt)
 ```
 
 ## Compute on big.data.table
@@ -80,18 +79,17 @@ gen.data = function(n = 5e6, seed = 123, ...){
     data.table(year = sample(2011:2014, n, TRUE), high = sample(n*0.9, n, TRUE), normal = sample(n*0.1, n, TRUE), low = sample(letters, n, TRUE), value = rnorm(n))
 }
 bdt = as.big.data.table(x = gen.data, rscl = rscl)
+str(bdt)
 
 bdt[, .(value = sum(value))]
 bdt[, .(value = sum(value)), year]
+bdt[, .(value = sum(value)), .(year, low)]
+bdt[, .(value = sum(value)), .(year, normal)]
 
-# Using parallel processing by default, see on 20M rows in 4 nodes
-
-system.time(
-    bdt[, .(value = sum(value)), .(year, low)]
-)
-system.time(
-    bdt[, .(value = sum(value)), .(year, low), parallel = FALSE]
-)
+# processing timing
+op = options("bigdatatable.verbose"=TRUE)
+bdt[, .(value = sum(value)), .(year, high)]
+options(op)
 ```
 
 ## Features of big.data.table
@@ -110,6 +108,8 @@ Reduce("+", l)
 # or use conviniet wrapper
 l = bdt[[expr = sapply(x, length)]]
 Reduce("+", l)
+# or a one liner with chained data.table query
+bdt[[expr = as.data.table(lapply(x, length))]][, lapply(.SD, sum)]
 
 # partitioning can be handled automatically
 
@@ -136,11 +136,11 @@ sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
 
 # this will not work as data to aggregate has been renamed
 bdt[, .(value = sum(value)), .(year, normal2 = normal)]
-# you can always workaround that directly
+# you can always workaround that directly using `bdt[[expr = ...]]`
 r = bdt[[expr = x[, .(value = sum(value)), .(year, normal2 = normal)]]]
 r[, .(value = sum(value)), .(year, normal2)]
 
-# fetch data to local session
+# fetch data from all nodes to local session
 r = as.data.table(bdt)
 r[, .N, year]
 rm(r, dt)
@@ -155,4 +155,6 @@ invisible(lapply(l, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc))
 
 # Notes
 
-One of the reason why you may not need big.data.table package: [Big RAM is eating big data – Size of datasets used for analytics](http://datascience.la/big-ram-is-eating-big-data-size-of-datasets-used-for-analytics/)  
+If you are stuck with uncollected results from nodes on Rserve connections you can force collect by `lapply(attr(bdt, "rscl"), function(x) try(RS.collect(x), silent=TRUE))`.  
+  
+Interesting finding by Szilard Pafka why you may not even need big.data.table package in future: [Big RAM is eating big data – Size of datasets used for analytics](http://datascience.la/big-ram-is-eating-big-data-size-of-datasets-used-for-analytics/)  

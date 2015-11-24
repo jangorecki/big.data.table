@@ -8,9 +8,9 @@
 \arguments{
 \item{x}{big.data.table object.}
 
-\item{...}{arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.}
-
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
+
+\item{\dots}{arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.}
 }
 \value{
 data.table object.

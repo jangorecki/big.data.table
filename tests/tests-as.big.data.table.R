@@ -5,9 +5,6 @@ library(big.data.table)
 # connect
 port = 9411:9414
 rscl = rsc(port)
-# sapply(rscl, RS.close)
-# sapply(rscl, RS.collect)
-# sapply(rscl, function(x) try(RS.collect(x), silent=TRUE))
 
 # .function - having cluster working and source data in csv on disk of each node ----
 
@@ -67,7 +64,8 @@ stopifnot(
     dim(dt)==c(0L,0L),
     capture.output(print(bdt))=="Null data.table (0 rows and 0 cols)",
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(0L,0L,0L,0L))
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(0L,0L,0L,0L)),
+    all.equal(capture.output(str(bdt))[1:2], c("'big.data.table': 0 obs. of 0 variables across 4 nodes", "row count by node:"))
 )
 # data.table nrow < nodes
 dt = data.table(a=1:3)
@@ -76,7 +74,8 @@ stopifnot(
     length(rscl) > nrow(dt),
     identical(capture.output(print(bdt)), c("    a", " 1: 1", "---  ")),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,0L))
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,0L)),
+    all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 3 obs. of 1 variable across 4 nodes:", " $ a: int ", "row count by node:"))
 )
 # data.table nrow == nodes
 dt = data.table(a=1:4)
@@ -85,7 +84,8 @@ stopifnot(
     length(rscl) == nrow(dt),
     identical(capture.output(print(bdt)), c("    a", " 1: 1", "---  ", " 4: 4")),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,1L))
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,1L)),
+    all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 4 obs. of 1 variable across 4 nodes:", " $ a: int ", "row count by node:"))
 )
 # data.table nrow == nodes+1L
 dt = data.table(a=1:5)
@@ -95,6 +95,15 @@ stopifnot(
     identical(capture.output(print(bdt)), c("    a", " 1: 1", " 2: 2", "---  ", " 5: 5")),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
     all.equal(unname(bdt.eval(bdt, nrow(x))), c(2L,1L,1L,1L))
+)
+# data.table partition.by cardinality lower than number of nodes
+dt = data.table(a=1:3, b=rnorm(6))
+bdt = as.big.data.table(x = dt, rscl = rscl, partition.by = "a")
+stopifnot(
+    length(rscl)-1L == uniqueN(dt$a),
+    (co <- capture.output(str(bdt)))[length(co)]=="'big.data.table' partitioned by 'a'.",
+    all(is.big.data.table(bdt, check.nodes = TRUE)),
+    all.equal(unname(bdt.eval(bdt, nrow(x))), c(2L,2L,2L,0L))
 )
 
 # closing workspace ----

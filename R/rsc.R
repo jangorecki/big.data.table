@@ -2,7 +2,7 @@
 # RserveConnection list ----
 
 #' @title Connect to Rserve instances
-#' @description A wrapper to `RS.connect` function using `lapply` over recycled input arguments.
+#' @description A wrapper to `RS.connect` function using `lapply` over recycled input arguments. It also requires data.table package.
 #' @param port integer vector of port numbers
 #' @param host character scalar, soon will support vector.
 #' @param tls logical, see `?RSclient::RS.connect` for details.
@@ -13,7 +13,10 @@ rsc = function(port = 6311L, host = NULL, tls = FALSE, proxy.target = NULL, prox
     # TO DO this needs to have nice recycling of attributes to easy setup set of nodes
     stopifnot(as.logical(length(port)))
     rscl = lapply(setNames(port, port), function(port) RS.connect(host = host, port = port, tls = tls, proxy.target = proxy.target, proxy.wait = proxy.wait))
-    r = sapply(rscl, RS.eval, as.logical(suppressPackageStartupMessages(require(data.table))))
+    # workaround check warning for use of "require"
+    qrequire = substitute(as.logical(suppressPackageStartupMessages(req.dt)),
+                          list(req.dt = call("require", package="data.table", quietly=TRUE, character.only=TRUE)))
+    r = sapply(rscl, RS.eval, qrequire, lazy = FALSE)
     if(!all(r)) stop("Some nodes failed to load data.table.")
     rscl
 }

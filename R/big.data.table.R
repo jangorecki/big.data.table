@@ -1,9 +1,14 @@
 selfNames = function(x) setNames(x, x)
-rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL) rbindlist(lapply(X = X, FUN = FUN, ... = ...), use.names=use.names, fill=fill, idcol=idcol)
 
-force.data.table = function(x){
-    setattr(x, "class", c("data.table","data.frame"))
-}
+#' @title Row bind lapply results
+#' @description Wrapper on `rbindlist(lapply(...))`.
+#' @param X vector (atomic or list) passed to `lapply`.
+#' @param FUN function passed to `lapply`.
+#' @param \dots optional arguments to `FUN`.
+#' @param use.names logical passed to `rbindlist`.
+#' @param fill logical passed to `rbindlist`.
+#' @param idcol logical or  character passed to `rbindlist`.
+rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL) rbindlist(lapply(X = X, FUN = FUN, ... = ...), use.names=use.names, fill=fill, idcol=idcol)
 
 dim.big.data.table = function(x){
     nodes.ok = is.big.data.table(x, check.nodes = TRUE)
@@ -39,14 +44,33 @@ print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quo
     return(invisible())
 }
 
-str.big.data.table = function(object, ...){
-    str(setDT(unclass(object)))
+str.big.data.table = function(object, unclass = FALSE, ...){
+    if(unclass){
+        str(setDT(base::unclass(object))) 
+        return(invisible())
+    }
+    qdim = quote(dim(x))
+    dims.nodes = bdt.eval(object, qdim, lazy = FALSE, parallel = FALSE)
+    nrows = sapply(dims.nodes, `[[`, 1L)
+    ncols = unique(sapply(dims.nodes, `[[`, 2L))
+    nnodes = length(dims.nodes)
+    if(length(ncols)!=1L) stop("Nodes differs in data.table structure in terms of columns number. Use: `bdt.eval(bdt, capture.output(str(x)))` to investigate.")
+    core.dt = as.data.table(lapply(object, function(x) x))
+    dtcols = capture.output(str(core.dt, give.attr = FALSE))[-1L]
+    prnt = character()
+    prnt["header"] = sprintf("'big.data.table': %s obs. of %s variable%s across %s nodes%s", sum(nrows), ncols, if(ncols!=1L) "s" else "", nnodes, if(ncols > 0L) ":" else "")
+    if(ncols > 0L) prnt["columns"] = paste(dtcols, collapse="\n")
+    prnt["nodes_header"] = sprintf("row count by node:")
+    prnt["nodes_nrow"] = paste(capture.output(print(nrows)), collapse="\n")
+    if(length(partitions <- attr(object, "partitions"))) prnt["partitions"] = sprintf("'big.data.table' partitioned by '%s'.", paste(nondotnames(partitions), collapse = ", "))
+    cat(prnt, sep="\n")
+    invisible()
 }
 
-#' @title Test if big.data.table
+#' @title Test if object is big.data.table
 #' @param x R object.
 #' @param check.nodes logical default FALSE, when TRUE it will validate that nodes have *x* variable data.table
-#' @return TRUE if *x* inherits from *big.data.table*.
+#' @return For `check.nodes=FALSE` (default) a scalar logical if *x* inherits from *big.data.table*. For `check.nodes=TRUE` vector of results from expression `exists("x") && is.data.table(x)` on each node.
 is.big.data.table = function(x, check.nodes = FALSE){
     if(!inherits(x, "big.data.table")) return(FALSE)
     if(!check.nodes) return(TRUE)
@@ -103,6 +127,12 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
     return(x)
 }
 
+#' @title big.data.table assign object
+#' @description Saves the object to nodes, handles partitioning.
+#' @param x big.data.table.
+#' @param name character variable name to which assign *value* in each node, for *x* data.table it should be equal to `x`.
+#' @param value an R object to save on node, if it is data.table then it will be partitioned accroding to *x* partitions.
+#' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 bdt.assign = function(x, name, value, parallel = TRUE){
     stopifnot(is.big.data.table(x) || is.rsc(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
@@ -160,7 +190,8 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
         partition.by = nondotnames(partitions)
         # update partitions
         qcall = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by=partition.by))
-        x = big.data.table(x = force.data.table(x)[0L], rscl = rscl, partitions = unique(bdt.eval(x, expr = qcall, lazy = FALSE, parallel=parallel), by = partition.by))
+        partitions = unique(bdt.eval(x, expr = qcall, lazy = FALSE, parallel=parallel), by = partition.by)
+        x = big.data.table(x = setattr(x, "class", c("data.table","data.frame"))[0L], rscl = rscl, partitions = partitions)
     }
     if(isTRUE(copy)){
         lapply(seq_len(nnodes), function(i){
@@ -189,7 +220,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 
 #' @title Subset from big.data.table
 #' @param x big.data.table object.
-#' @param ... arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.
+#' @param \dots arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @note Results from nodes are rbinded and the same call is evalated on combined results. That means the column names cannot be renamed or simplified to vector in `...` call. Use `[[.big.data.table` for deeper flexibility.
 #' @return data.table object.
@@ -210,14 +241,14 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @param lazy logical if TRUE then *expr* is substituted.
 #' @param send logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.
 #' @param i numeric restrict expression to particular nodes
-#' @param ... ignored.
+#' @param \dots ignored.
 #' @param simplify logical passed to `bdt.eval`, affects the type of returned object.
 #' @param rbind logical passed to `bdt.eval`, affects the type of returned object.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.
 "[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE){
     # when `j` provided it return empty column from bdt to get a class of column
-    if(!missing(j) && !is.null(j) && is.numeric(j)) return(unclass(x)[[j]])
+    if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(unclass(x)[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
     rscl = attr(x, "rscl")
     if(missing(i)) i = seq_along(rscl)

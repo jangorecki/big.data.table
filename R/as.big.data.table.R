@@ -22,18 +22,29 @@ big.data.table = function(x, rscl, partitions){
 
 # as.big.data.table ----
 
+#' @title Convert to big.data.table
+#' @param x object to cast into big.data.table, can be data.table, function, quoted call or a list.
+#' @param \dots arguments passed to methods.
+#' @param rscl list of Rserve connections, can be validated by `is.rsc(rscl, silent=FALSE)`.
+#' @param partition.by character vector of column names to be used for partitioning, `uniqueN` by those columns should be lower than number of nodes.
+#' @param partitions data.table of unique combinations of values in *partition.by* columns.
+#' @param parallel logical, see `?bdt.eval`.
+#' @note Supported `x` data types are *data.table* (will be automatically spread across the nodes), *function* or quoted *call* will be evaluated on each node and assigned to `x` variable, a *list* will struct big.data.table on already working set of nodes, all having `x` data.tables.
+#' @return big.data.table object.
 as.big.data.table = function(x, ...){
     UseMethod("as.big.data.table")
 }
 
 # .function / .call - having cluster working and source data in csv on disk of each node ----
 
+#' @rdname as.big.data.table
 as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
     fun.args = match.call(expand.dots = FALSE)$`...`
     qcall = as.call(c(list(x), fun.args))
     as.big.data.table(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
 
+#' @rdname as.big.data.table
 as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
     # execute function on nodes
     assign_x = substitute(x <- qcall, list(qcall = x))
@@ -44,6 +55,7 @@ as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = 
 
 # .list - having cluster working and loaded with data already ----
 
+#' @rdname as.big.data.table
 as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, ...){
     stopifnot(is.rsc(x, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table
@@ -78,6 +90,7 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
 
 # .data.table - having data loaded locally in R ----
 
+#' @rdname as.big.data.table
 as.big.data.table.data.table = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
     stopifnot(is.rsc(rscl, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table

@@ -59,7 +59,12 @@ stopifnot(
     length(capture.output(print(bdt)))==12L,
     length(capture.output(print(bdt, topn=2)))==6L,
     length(capture.output(print(bdt, topn=1)))==4L,
-    length(capture.output(print(bdt, topn=10)))==22
+    length(capture.output(print(bdt, topn=10)))==22,
+    # expected str
+    capture.output(str(bdt, unclass=TRUE))[1L] %like% "0 obs. of  5 variables:",
+    capture.output(str(bdt))[1L]=="'big.data.table': 200000 obs. of 5 variables across 4 nodes:",
+    capture.output(str(bdt))[length(bdt)+2L]=="row count by node:",
+    capture.output(str(bdt))[length(bdt)+4L]=="50000 50000 50000 50000 "
 )
 
 # Features of big.data.table ----
@@ -71,7 +76,7 @@ bdt = as.big.data.table(x = dt, rscl = rscl)
 r.no.part.nr = bdt[[expr = nrow(x)]]
 r.no.part = bdt[[expr = x[, .N, year], rbind = FALSE]]
 
-# partition by "year"
+# partition by year
 partition.by = "year"
 bdt = as.big.data.table(x = dt, rscl = rscl, partition.by = partition.by)
 r.part.nr = bdt[[expr = nrow(x)]]

@@ -19,13 +19,13 @@
 
 \item{i}{numeric restrict expression to particular nodes}
 
-\item{...}{ignored.}
-
 \item{simplify}{logical passed to `bdt.eval`, affects the type of returned object.}
 
 \item{rbind}{logical passed to `bdt.eval`, affects the type of returned object.}
 
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
+
+\item{\dots}{ignored.}
 }
 \value{
 When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.

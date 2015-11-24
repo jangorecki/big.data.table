@@ -3,7 +3,6 @@ import(data.table)
 import(Rserve)
 import(RSclient)
 # to big.data.table
-export(big.data.table)
 export(as.big.data.table)
 S3method(as.big.data.table, data.table)
 S3method(as.big.data.table, list)
@@ -26,5 +25,3 @@ export(is.big.data.table)
 export(rsc)
 export(is.rsc)
 export(rbindlapply)
-# re-export
-export(Rserve)
