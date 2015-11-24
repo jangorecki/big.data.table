@@ -58,7 +58,7 @@ str.big.data.table = function(object, unclass = FALSE, ...){
     core.dt = as.data.table(lapply(object, function(x) x))
     dtcols = capture.output(str(core.dt, give.attr = FALSE))[-1L]
     prnt = character()
-    prnt["header"] = sprintf("'big.data.table': %s obs. of %s variable%s across %s nodes%s", sum(nrows), ncols, if(ncols!=1L) "s" else "", nnodes, if(ncols > 0L) ":" else "")
+    prnt["header"] = sprintf("'big.data.table': %s obs. of %s variable%s across %s node%s%s", sum(nrows), ncols, if(ncols!=1L) "s" else "", nnodes, if(nnodes!=1L) "s" else "", if(ncols > 0L) ":" else "")
     if(ncols > 0L) prnt["columns"] = paste(dtcols, collapse="\n")
     prnt["nodes_header"] = sprintf("row count by node:")
     prnt["nodes_nrow"] = paste(capture.output(print(nrows)), collapse="\n")
