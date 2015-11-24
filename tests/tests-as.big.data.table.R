@@ -62,7 +62,6 @@ stopifnot(all.equal(
 
 # cleanup all objects in all nodes, excluding prefixed with dot '.'
 r = sapply(attr(bdt,"rscl"), RS.eval, rm(list=ls()))
-stopifnot(all.equal(lapply(attr(bdt,"rscl"), RS.eval, ls()), lapply(rep(0,4), character), check.attributes = FALSE))
 
 # disconnect
 sapply(rscl, RS.close)

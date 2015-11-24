@@ -44,7 +44,7 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
         cat(sprintf("big.data.table: submitting data.table queries to %s nodes %s.\n", nnodes, ifelse(isTRUE(parallel), "in parallel", "sequentially"), sep=""))
     }
     if(isTRUE(lazy)) expr = substitute(expr)
-    if(!missing(send) && isTRUE(send)) expr = call("{",expr, TRUE)
+    if(!missing(send) && isTRUE(send)) expr = substitute({expr; TRUE}, list(expr=expr))
     if(!missing(try) && isTRUE(try)) expr = substitute(tryCatch(expr, error = function(e) e, warning = function(w) w), list(expr=expr))
     if(!parallel){
         x = lapply(rscl, RS.eval, expr, lazy = FALSE)
@@ -132,7 +132,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
         partition.by = nondotnames(partitions)
         # update partitions
         qcall = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by=partition.by))
-        x = big.data.table(x = force.data.table(x)[0L], rscl = rscl, partitions = unique(bdt.eval(x, expr = qcall, lazy = TRUE, parallel=parallel), by = partition.by))
+        x = big.data.table(x = force.data.table(x)[0L], rscl = rscl, partitions = unique(bdt.eval(x, expr = qcall, lazy = FALSE, parallel=parallel), by = partition.by))
     }
     if(isTRUE(copy)){
         lapply(seq_len(nnodes), function(i){
@@ -140,7 +140,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
             cat(sprintf("big.data.table: processing %s of %s nodes.\n", i, nnodes))
             # check if anything to copy
             qcall = substitute(x[!partition.key], list(partition.key=partitions[i]))
-            tmp = bdt.eval(rscl[i], expr = qcall, lazy = TRUE, parallel=FALSE)
+            tmp = bdt.eval(rscl[i], expr = qcall, lazy = FALSE, parallel=FALSE)
             if(nrow(tmp)){
                 # send it to potentially multiple nodes
                 bdt.assign(x, name = "x", tmp, parallel = parallel)
@@ -153,7 +153,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     }
     if(validate){
         qcall = quote(nrow(unique(x, by = partition.by))==1L)
-        r = bdt.eval(x, expr = qcall, lazy = TRUE, parallel = parallel)
+        r = bdt.eval(x, expr = qcall, lazy = FALSE, parallel = parallel)
         if(!all(r)) stop(sprintf("big.data.table partitioning has been finished but validation of data didn't pass for %s nodes.", which(!r)))
     }
     return(x)
@@ -169,7 +169,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     dtq = match.call(expand.dots = FALSE)$`...`
     dtcall = as.call(c(list(as.symbol("["), x = as.name("x")), dtq))
     # bdt node eval
-    x = bdt.eval(x, expr = dtcall,  lazy = TRUE, parallel = parallel)
+    x = bdt.eval(x, expr = dtcall, lazy = FALSE, parallel = parallel)
     # aggregate results from nodes
     r = eval(dtcall)
     return(r)
@@ -187,11 +187,11 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @param rbind logical passed to `bdt.eval`, affects the type of returned object.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.
-"[[.big.data.table" = function(x, j, expr, lazy = FALSE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE){
+"[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE){
     # when `j` provided it return empty column from bdt to get a class of column
     if(!missing(j) && !is.null(j) && is.numeric(j)) return(unclass(x)[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
     rscl = attr(x, "rscl")
     if(missing(i)) i = seq_along(rscl)
-    bdt.eval(rscl[i], expr = expr, lazy = TRUE, send = send, simplify = simplify, rbind = rbind, parallel = parallel)
+    bdt.eval(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel)
 }

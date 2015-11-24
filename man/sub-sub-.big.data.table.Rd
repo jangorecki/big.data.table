@@ -3,7 +3,7 @@
 \alias{[[.big.data.table}
 \title{Extract from big.data.table}
 \usage{
-\method{[[}{big.data.table}(x, j, expr, lazy = FALSE, send = FALSE, i, ...,
+\method{[[}{big.data.table}(x, j, expr, lazy = TRUE, send = FALSE, i, ...,
   simplify = TRUE, rbind = TRUE, parallel = TRUE)
 }
 \arguments{

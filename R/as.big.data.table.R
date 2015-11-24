@@ -31,7 +31,7 @@ as.big.data.table = function(x, ...){
 as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
     fun.args = match.call(expand.dots = FALSE)$`...`
     qcall = as.call(c(list(x), fun.args))
-    as.big.data.table(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, lazy = FALSE, parallel = parallel)
+    as.big.data.table(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
 
 as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
@@ -69,7 +69,7 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
     if(length(partition.by) && !length(partitions)){
         qpartition = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE],
                                 list(partition.by = partition.by))
-        partitions = unique(bdt.eval(x, expr = qpartition, lazy = TRUE, parallel = parallel), by = partition.by)
+        partitions = unique(bdt.eval(x, expr = qpartition, lazy = FALSE, parallel = parallel), by = partition.by)
     }
     # return big.data.table class
     bdt = RS.eval(x[[1L]], x[0L])
