@@ -22,8 +22,6 @@ docker run -d -p 33313:6311 --name=rnode13 jangorecki/r-data.table
 docker run -d -p 33314:6311 --name=rnode14 jangorecki/r-data.table
 ```
 
-Follow below section, skip *start cluster* `Rserve` function call.
-
 ## Run nodes from R
 
 ```r
@@ -172,9 +170,9 @@ rm(r, dt)
 sapply(rscl, RS.close)
 ```
 
-## Shutdown nodes
+## Closing nodes
 
-Nodes started from R.
+### Shutdown nodes started from R
 
 ```r
 port = 33311:33314
@@ -182,7 +180,7 @@ l = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port),
 invisible(lapply(l, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
 ```
 
-Nodes started as docker images.
+### Shutdown nodes started as docker images.
 
 ```sh
 docker stop rnode11 rnode12 rnode13 rnode14
