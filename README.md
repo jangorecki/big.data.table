@@ -16,13 +16,11 @@ install.packages("big.data.table", repos = "https://jangorecki.github.io/big.dat
 Docker image details: [jangorecki/r-data.table](https://hub.docker.com/r/jangorecki/r-data.table)
 
 ```sh
-docker run -d -p 9411:6311 --name=rnode11 jangorecki/r-data.table
-docker run -d -p 9412:6311 --name=rnode12 jangorecki/r-data.table
-docker run -d -p 9413:6311 --name=rnode13 jangorecki/r-data.table
-docker run -d -p 9414:6311 --name=rnode14 jangorecki/r-data.table
+docker run -d -p 33311:6311 --name=rnode11 jangorecki/r-data.table
+docker run -d -p 33312:6311 --name=rnode12 jangorecki/r-data.table
+docker run -d -p 33313:6311 --name=rnode13 jangorecki/r-data.table
+docker run -d -p 33314:6311 --name=rnode14 jangorecki/r-data.table
 ```
-
-To terminate all nodes use `docker stop rnode11 rnode12 rnode13 rnode14`.  
 
 Follow below section, skip *start cluster* `Rserve` function call.
 
@@ -32,7 +30,7 @@ Follow below section, skip *start cluster* `Rserve` function call.
 library(Rserve)
 library(RSclient)
 
-port = 9411:9414
+port = 33311:33314
 # start cluster
 invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
 ```
@@ -47,7 +45,7 @@ library(RSclient)
 library(data.table)
 library(big.data.table)
 
-port = 9411:9414
+port = 33311:33314
 # wrapper to lapply on RS.connect with recycling
 rscl = rsc(port)
 # print objects in working directory of each node
@@ -96,7 +94,7 @@ str(bdt)
 ## Compute on big.data.table
 
 ```r
-port = 9411:9414
+port = 33311:33314
 rscl = rsc(port)
 
 gen.data = function(n = 5e6, seed = 123, ...){
@@ -172,10 +170,22 @@ rm(r, dt)
 
 # disconnect
 sapply(rscl, RS.close)
+```
 
-# shutdown nodes
+## Shutdown nodes
+
+Nodes started from R.
+
+```r
+port = 33311:33314
 l = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port), error = function(e) e, warning = function(w) w))
 invisible(lapply(l, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
+```
+
+Nodes started as docker images.
+
+```sh
+docker stop rnode11 rnode12 rnode13 rnode14
 ```
 
 # Notes

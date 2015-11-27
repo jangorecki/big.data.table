@@ -3,7 +3,7 @@ library(data.table)
 library(big.data.table)
 
 # connect
-port = 9411:9414
+port = 33311:33314
 rscl = rsc(port)
 stopifnot(is.rsc(rscl))
 
