@@ -9,19 +9,41 @@ install.packages("data.table", repos = "https://cran.rstudio.com")
 install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table")
 ```
 
+# Starting nodes
+
+## Run nodes as docker services
+
+Docker image details: [jangorecki/r-data.table](https://hub.docker.com/r/jangorecki/r-data.table)
+
+```sh
+docker run -d -p 9411:6311 --name=rnode11 jangorecki/r-data.table
+docker run -d -p 9412:6311 --name=rnode12 jangorecki/r-data.table
+docker run -d -p 9413:6311 --name=rnode13 jangorecki/r-data.table
+docker run -d -p 9414:6311 --name=rnode14 jangorecki/r-data.table
+```
+
+Follow below section, skip *start cluster* `Rserve` function call.
+
+## Run nodes from R
+
+```r
+library(Rserve)
+library(RSclient)
+
+port = 9411:9414
+# start cluster
+invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
+```
+
 # Usage
 
-## Initialize big.data.table
+You should have nodes already started.
 
 ```r
 library(Rserve)
 library(RSclient)
 library(data.table)
 library(big.data.table)
-
-port = 9411:9414
-# start cluster
-invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
 
 # wrapper to lapply on RS.connect with recycling
 rscl = rsc(port)
