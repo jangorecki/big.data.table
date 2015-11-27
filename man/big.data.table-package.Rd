@@ -7,7 +7,11 @@
 \alias{big.dt}
 \title{big.data.table-package}
 \description{
-big.data.table-package
+Leverage data.table onto set of Rserve nodes.
+}
+\details{
+Use `as.big.data.table` methods to extract/load/assign/populate data.
+Methods for `function` and `call` will be evaluated remotly, method for `data.table` will be evaluated locally and assigned to nodes.
 }
 \author{
 Jan Gorecki

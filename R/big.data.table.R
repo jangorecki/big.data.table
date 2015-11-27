@@ -1,4 +1,8 @@
 #' @title big.data.table-package
+#' @description Leverage data.table onto set of Rserve nodes.
+#' @details
+#' Use `as.big.data.table` methods to extract/load/assign/populate data.
+#' Methods for `function` and `call` will be evaluated remotly, method for `data.table` will be evaluated locally and assigned to nodes.
 #' @aliases bdt big.dt big.data.table
 #' @docType package
 #' @author Jan Gorecki

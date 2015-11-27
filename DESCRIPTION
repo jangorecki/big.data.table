@@ -1,7 +1,7 @@
 Package: big.data.table
 Type: Package
 Title: Distributed computing for data.table
-Version: 0.2
+Version: 0.3
 Date: 2015-11-24
 Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
