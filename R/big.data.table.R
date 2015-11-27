@@ -1,3 +1,10 @@
+#' @title big.data.table-package
+#' @aliases bdt big.dt big.data.table
+#' @docType package
+#' @author Jan Gorecki
+#' @name big.data.table-package
+NULL
+
 selfNames = function(x) setNames(x, x)
 
 #' @title Row bind lapply results
