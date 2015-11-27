@@ -22,6 +22,8 @@ docker run -d -p 9413:6311 --name=rnode13 jangorecki/r-data.table
 docker run -d -p 9414:6311 --name=rnode14 jangorecki/r-data.table
 ```
 
+To terminate all nodes use `docker stop rnode11 rnode12 rnode13 rnode14`.  
+
 Follow below section, skip *start cluster* `Rserve` function call.
 
 ## Run nodes from R
@@ -45,6 +47,7 @@ library(RSclient)
 library(data.table)
 library(big.data.table)
 
+port = 9411:9414
 # wrapper to lapply on RS.connect with recycling
 rscl = rsc(port)
 # print objects in working directory of each node
