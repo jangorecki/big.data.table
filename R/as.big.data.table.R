@@ -35,7 +35,7 @@ as.big.data.table = function(x, ...){
     UseMethod("as.big.data.table")
 }
 
-# .function / .call - having cluster working and source data in csv on disk of each node ----
+# .function - having cluster working and source data available to each node ----
 
 #' @rdname as.big.data.table
 as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
@@ -43,6 +43,8 @@ as.big.data.table.function = function(x, rscl, partition.by, partitions, paralle
     qcall = as.call(c(list(x), fun.args))
     as.big.data.table(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
+
+# .call - having cluster working and source data available to each node ----
 
 #' @rdname as.big.data.table
 as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){

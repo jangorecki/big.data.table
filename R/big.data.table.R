@@ -57,7 +57,7 @@ print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quo
 
 str.big.data.table = function(object, unclass = FALSE, ...){
     if(unclass){
-        str(setDT(base::unclass(object))) 
+        str(setDT(base::unclass(object)))
         return(invisible())
     }
     qdim = quote(dim(x))
@@ -233,16 +233,17 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @param x big.data.table object.
 #' @param \dots arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
+#' @param outer.aggregate logical, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc.
 #' @note Results from nodes are rbinded and the same call is evalated on combined results. That means the column names cannot be renamed or simplified to vector in `...` call. Use `[[.big.data.table` for deeper flexibility.
 #' @return data.table object.
-"[.big.data.table" = function(x, ..., parallel = TRUE){
+"[.big.data.table" = function(x, ..., parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",TRUE)){
     dtq = match.call(expand.dots = FALSE)$`...`
     dtcall = as.call(c(list(as.symbol("["), x = as.name("x")), dtq))
     # bdt node eval
     x = bdt.eval(x, expr = dtcall, lazy = FALSE, parallel = parallel)
     # aggregate results from nodes
-    r = eval(dtcall)
-    return(r)
+    if(outer.aggregate) x = eval(dtcall)
+    return(x)
 }
 
 #' @title Extract from big.data.table

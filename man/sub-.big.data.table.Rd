@@ -3,12 +3,15 @@
 \alias{[.big.data.table}
 \title{Subset from big.data.table}
 \usage{
-\method{[}{big.data.table}(x, ..., parallel = TRUE)
+\method{[}{big.data.table}(x, ..., parallel = TRUE,
+  outer.aggregate = getOption("bigdatatable.outer.aggregate", TRUE))
 }
 \arguments{
 \item{x}{big.data.table object.}
 
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
+
+\item{outer.aggregate}{logical, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc.}
 
 \item{\dots}{arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.}
 }

@@ -2,12 +2,16 @@ Distributed parallel computing on data.table.
 
 # Installation
 
+Below commands will install latest stable big.data.table release.  
+
 ```r
 install.packages("microbenchmarkCore", repos = "https://olafmersmann.github.io/drat")
 install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
 install.packages("data.table", repos = "https://cran.rstudio.com")
 install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table")
 ```
+
+To use development version install from [big.data.table](https://gitlab.com/jangorecki/big.data.table) repo.  
 
 # Starting nodes
 
@@ -180,7 +184,7 @@ l = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port),
 invisible(lapply(l, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
 ```
 
-### Shutdown nodes started as docker images.
+### Shutdown nodes started as docker images
 
 ```sh
 docker stop rnode11 rnode12 rnode13 rnode14
