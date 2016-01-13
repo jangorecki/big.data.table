@@ -32,3 +32,7 @@ is.rsc = function(x, silent=TRUE){
     if(!all(sapply(x, inherits, "RserveConnection"))) stop(sprintf("Rserve connection list must store only 'RserveConnection' class objects."))
     return(TRUE)
 }
+
+clean = function(rscl){
+    sapply(rscl, function(rsc) try(RS.collect(rsc), silent=TRUE))
+}
