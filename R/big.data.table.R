@@ -148,10 +148,10 @@ bdt.assign = function(x, name, value, parallel = TRUE){
     stopifnot(is.big.data.table(x) || is.rsc(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
-    if(is.data.table(value) && isTRUE(getOption("bigdatatable.verbose"))){
-        ts = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) microbenchmarkCore::get_nanotime() else proc.time()[[3L]]
-        cat(sprintf("big.data.table: assigning data.table to %s nodes %s.\n", nnodes, ifelse(isTRUE(parallel), "in parallel", "sequentially"), sep=""))
-    }
+    #     if(is.data.table(value) && isTRUE(getOption("bigdatatable.verbose"))){
+    #         ts = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) microbenchmarkCore::get_nanotime() else proc.time()[[3L]]
+    #         cat(sprintf("big.data.table: assigning data.table to %s nodes %s.\n", nnodes, ifelse(isTRUE(parallel), "in parallel", "sequentially"), sep=""))
+    #     }
     partitions = if(is.big.data.table(x)) attr(x, "partitions") else data.table(NULL)
     if(!is.data.table(value)){
         value = rep(value, nnodes)
@@ -176,10 +176,10 @@ bdt.assign = function(x, name, value, parallel = TRUE){
         invisible(lapply(rscid, function(i) RS.assign(rsc = rscl[[i]], name = name, value = value[[i]], wait = FALSE)))
         x = lapply(rscl[rscid], RS.collect)
     }
-    if(isTRUE(getOption("bigdatatable.verbose"))){
-        timing = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) (microbenchmarkCore::get_nanotime() - ts) * 1e-9 else proc.time()[[3L]] - ts
-        cat(sprintf("big.data.table: data.table assigned to %s nodes in %.4f seconds.\n", nnodes, timing), sep="")
-    }
+    #     if(isTRUE(getOption("bigdatatable.verbose"))){
+    #         timing = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) (microbenchmarkCore::get_nanotime() - ts) * 1e-9 else proc.time()[[3L]] - ts
+    #         cat(sprintf("big.data.table: data.table assigned to %s nodes in %.4f seconds.\n", nnodes, timing), sep="")
+    #     }
     return(x)
 }
 
@@ -202,7 +202,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
         # update partitions
         qcall = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by=partition.by))
         partitions = unique(bdt.eval(x, expr = qcall, lazy = FALSE, parallel=parallel), by = partition.by)
-        x = big.data.table(x = setattr(x, "class", c("data.table","data.frame"))[0L], rscl = rscl, partitions = partitions)
+        x = big.data.table(var = "x", rscl = rscl, partitions = partitions)
     }
     if(isTRUE(copy)){
         lapply(seq_len(nnodes), function(i){
@@ -232,6 +232,8 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @title Subset from big.data.table
 #' @param x big.data.table object.
 #' @param \dots arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.
+#' @param new.var character scalar, name of new variable where query results should be cached.
+#' @param new.copy logical if *TRUE* it will make deep copy while saving to *new.var*.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @param outer.aggregate logical, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
@@ -288,7 +290,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.
 "[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
     # when `j` provided it return empty column from bdt to get a class of column
-    if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(unclass(x)[[j]])
+    if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(core.data.table(x, attr(x, "var"))[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
     rscl = attr(x, "rscl")
     if(missing(i)){

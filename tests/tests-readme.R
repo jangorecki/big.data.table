@@ -48,23 +48,24 @@ gen.data = function(n = 5e4, seed = 123, ...){
 bdt = as.big.data.table(x = gen.data, rscl = rscl)
 stopifnot(
     # expected dims after aggregation
-    dim(bdt[, .(value = sum(value))])==c(1L,1L),
-    dim(bdt[, .(value = sum(value)), year])==c(4L,2L),
+    all.equal(dim(bdt[, .(value = sum(value))]), c(4L,1L)),
+    all.equal(dim(bdt[, .(value = sum(value))][, .(value = sum(value))]), c(1L,1L)),
+    all.equal(dim(bdt[, .(value = sum(value)), year, outer.aggregate = TRUE]), c(4L,2L)),
     # parallel match to non-parallel
     all.equal(
         bdt[, .(value = sum(value)), .(year, high)],
         bdt[, .(value = sum(value)), .(year, high), parallel = FALSE]
     ),
     # expected print length
-    length(capture.output(print(bdt)))==12L,
-    length(capture.output(print(bdt, topn=2)))==6L,
-    length(capture.output(print(bdt, topn=1)))==4L,
-    length(capture.output(print(bdt, topn=10)))==22,
+    all.equal(length(capture.output(print(bdt))), 12L),
+    all.equal(length(capture.output(print(bdt, topn=2))), 6L),
+    all.equal(length(capture.output(print(bdt, topn=1))), 4L),
+    all.equal(length(capture.output(print(bdt, topn=10))), 22),
     # expected str
-    capture.output(str(bdt, unclass=TRUE))[1L] %like% "0 obs. of  5 variables:",
-    capture.output(str(bdt))[1L]=="'big.data.table': 200000 obs. of 5 variables across 4 nodes:",
-    capture.output(str(bdt))[length(bdt)+2L]=="row count by node:",
-    capture.output(str(bdt))[length(bdt)+4L]=="50000 50000 50000 50000 "
+    isTRUE(capture.output(str(bdt, unclass=TRUE))[1L] %like% "0 obs. of  5 variables:"),
+    all.equal(capture.output(str(bdt))[1L],"'big.data.table': 200000 obs. of 5 variables across 4 nodes:"),
+    all.equal((pp <- capture.output(str(bdt)))[length(pp)-2L], "row count by node:"),
+    all.equal((pp <- capture.output(str(bdt)))[length(pp)], "50000 50000 50000 50000 ")
 )
 
 # Features of big.data.table ----

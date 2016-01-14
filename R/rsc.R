@@ -33,6 +33,9 @@ is.rsc = function(x, silent=TRUE){
     return(TRUE)
 }
 
+#' @title Force collect results to unlock error
+#' @param rscl list of connections to R nodes
+#' @return Results from `try` `RS.collect` from each node, simplified if possible.
 clean = function(rscl){
     sapply(rscl, function(rsc) try(RS.collect(rsc), silent=TRUE))
 }

@@ -3,15 +3,23 @@
 \alias{[.big.data.table}
 \title{Subset from big.data.table}
 \usage{
-\method{[}{big.data.table}(x, ..., parallel = TRUE,
-  outer.aggregate = getOption("bigdatatable.outer.aggregate", TRUE))
+\method{[}{big.data.table}(x, ..., new.var, new.copy = FALSE,
+  parallel = TRUE,
+  outer.aggregate = getOption("bigdatatable.outer.aggregate", FALSE),
+  .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
 \item{x}{big.data.table object.}
 
+\item{new.var}{character scalar, name of new variable where query results should be cached.}
+
+\item{new.copy}{logical if *TRUE* it will make deep copy while saving to *new.var*.}
+
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
 
 \item{outer.aggregate}{logical, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc.}
+
+\item{.log}{logical if *TRUE* then logging will be done using logR to postgres db.}
 
 \item{\dots}{arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.}
 }

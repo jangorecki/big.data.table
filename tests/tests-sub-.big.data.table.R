@@ -15,7 +15,7 @@ bdt = as.big.data.table(x = gen.data, rscl = rscl)
 stopifnot(
     all.equal(dim(bdt), c(length(port)*5e4, 5L)),
     all.equal(bdt.eval(bdt, dim(x)), lapply(1:4, function(i) c(5e4, 5L)), check.attributes = FALSE),
-    bdt[, .(value = sum(value))]$value==sum(bdt[, .(value = sum(value)), year]$value),
+    all.equal(bdt[, .(value = sum(value)), outer.aggregate = TRUE]$value, sum(bdt[, .(value = sum(value)), year]$value)),
     all.equal(bdt[, .(value = sum(value)), .(year, high)], bdt[, .(value = sum(value)), .(year, high), parallel = FALSE])
 )
 

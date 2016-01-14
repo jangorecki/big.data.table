@@ -4,7 +4,8 @@
 \title{Extract from big.data.table}
 \usage{
 \method{[[}{big.data.table}(x, j, expr, lazy = TRUE, send = FALSE, i, ...,
-  simplify = TRUE, rbind = TRUE, parallel = TRUE)
+  simplify = TRUE, rbind = TRUE, parallel = TRUE,
+  .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
 \item{x}{big.data.table object.}
@@ -24,6 +25,8 @@
 \item{rbind}{logical passed to `bdt.eval`, affects the type of returned object.}
 
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
+
+\item{.log}{logical if *TRUE* then logging will be done using logR to postgres db.}
 
 \item{\dots}{ignored.}
 }

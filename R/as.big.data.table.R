@@ -3,8 +3,12 @@ nondotnames = function(x){
     nm[!sapply(nm, substr, 1L, 1L)=="."]
 }
 
+#' @title Core of data.table from nodes
+#' @param x big.data.table
+#' @param var character scalar, variable name on remote node, usually 'x'.
+#' @return 0 rows data.table class object, rbind of each 0L subsets.
 core.data.table = function(x, var = "x"){
-    #stopifnot(is.character(var), length(var)==1L, exists(var), is.data.table(get(var)))
+    stopifnot(is.character(var), length(var)==1L)
     bdt.eval(x, expr = call("[", as.name(var), 0L), lazy = FALSE)
 }
 

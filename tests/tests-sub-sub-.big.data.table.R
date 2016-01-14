@@ -25,7 +25,7 @@ stopifnot(
     all.equal(bdt[[4L]], character(0)),
     all.equal(bdt[["year"]], integer(0)),
     all.equal(bdt[["low"]], character(0)),
-    all.equal(lapply(bdt, function(x) x), list(year = integer(0), high = integer(0), normal = integer(0), low = character(0), value = numeric(0))) # empty columns on `[[` with numeric
+    all.equal(lapply(setNames(1:5, c("year","high","normal","low","value")), function(i) bdt[[i]]), list(year = integer(0), high = integer(0), normal = integer(0), low = character(0), value = numeric(0))) # empty columns on `[[` with numeric
 )
 
 # closing workspace ----

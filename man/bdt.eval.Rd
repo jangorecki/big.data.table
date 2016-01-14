@@ -4,7 +4,8 @@
 \title{big.data.table evaluate on nodes}
 \usage{
 bdt.eval(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
-  rbind = TRUE, try = TRUE, parallel = TRUE)
+  rbind = TRUE, parallel = TRUE, silent = TRUE,
+  .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
 \item{x}{big.data.table.}
@@ -19,9 +20,11 @@ bdt.eval(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
 
 \item{rbind}{logical if *TRUE* (default) results are data.table they will be rbinded.}
 
-\item{try}{should be wrapped into tryCatch for errors and warnings? default (TRUE), means that warnings will not return the actual value.}
-
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
+
+\item{silent}{should be silently catched by `try` or `logR` if enabled.}
+
+\item{.log}{logical if *TRUE* then logging will be done using logR to postgres db.}
 }
 \value{
 Depending on *simplify, rbind* the results of evaluated expression.

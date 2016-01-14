@@ -7,7 +7,8 @@ port = 33311:33314
 rscl = rsc(port)
 
 # .function - having cluster working and source data in csv on disk of each node ----
-
+#options("bigdatatable.log"=TRUE)
+#options("run_id"=get_run_id())
 f = function(n = 1e5, ...) data.table(year = sample(2011:2014, n, TRUE), high = sample(n*0.9, n, TRUE), normal = sample(n*0.1, n, TRUE), low = sample(10, n, TRUE), value = rnorm(n))
 bdt = as.big.data.table(f, rscl, n = 2e4)
 stopifnot(
@@ -41,17 +42,20 @@ n = 1e5
 x = data.table(year = sample(2011:2014, n, TRUE), high = sample(n*0.9, n, TRUE), normal = sample(n*0.1, n, TRUE), low = sample(10, n, TRUE), value = rnorm(n))
 bdt = as.big.data.table(x, rscl)
 stopifnot(
-    dim(bdt)==c(1e5L, 5L),
-    nrow(bdt)==1e5L,
-    ncol(bdt)==5L,
-    names(bdt)==c("year", "high", "normal", "low", "value")
+    all.equal(dim(bdt), c(1e5L, 5L)),
+    all.equal(nrow(bdt),1e5L),
+    all.equal(ncol(bdt),5L),
+    all.equal(unlist(unique(bdt[[expr = names(x), simplify = TRUE]])), c("year", "high", "normal", "low", "value")),
+    all.equal(names(bdt), character()),
+    all.equal(dim(bdt[, .N, year][, sum(N), year]), c(4L,2L))
 )
 
 # as.data.table.big.data.table - extracting data from nodes to local R session ----
 
 dt = as.data.table(bdt)
 stopifnot(all.equal(
-    x[,.(value=sum(value), count=.N),, c("year","high","normal","low")],
+    x[,.(value=sum(value), count=.N),, c("year","high","normal","low")
+      ][,.(value=sum(value), count=sum(count)),, c("year","high","normal","low")],
     dt[,.(value=sum(value), count=.N),, c("year","high","normal","low")]
 ))
 
@@ -61,8 +65,8 @@ stopifnot(all.equal(
 dt = data.table(NULL)
 bdt = as.big.data.table(x = dt, rscl = rscl)
 stopifnot(
-    dim(dt)==c(0L,0L),
-    capture.output(print(bdt))=="Null data.table (0 rows and 0 cols)",
+    all.equal(dim(dt), c(0L,0L)),
+    all.equal(capture.output(print(bdt)), "Null data.table (0 rows and 0 cols)"),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
     all.equal(unname(bdt.eval(bdt, nrow(x))), c(0L,0L,0L,0L)),
     all.equal(capture.output(str(bdt))[1:2], c("'big.data.table': 0 obs. of 0 variables across 4 nodes", "row count by node:"))
