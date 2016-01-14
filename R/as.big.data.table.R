@@ -3,21 +3,23 @@ nondotnames = function(x){
     nm[!sapply(nm, substr, 1L, 1L)=="."]
 }
 
+core.data.table = function(x, var = "x"){
+    #stopifnot(is.character(var), length(var)==1L, exists(var), is.data.table(get(var)))
+    bdt.eval(x, expr = call("[", as.name(var), 0L), lazy = FALSE)
+}
+
 # big.data.table ----
 
-big.data.table = function(x, rscl, partitions){
-    stopifnot(is.rsc(rscl, silent=FALSE))
-    bdt = if(!missing(x) && !is.null(x)){
-        stopifnot(is.data.table(x))
-        x[0L]
-    } else data.table(NULL)
+big.data.table = function(var = "x", rscl, partitions){
+    stopifnot(is.character(var), is.rsc(rscl, silent=FALSE))
     if(!missing(partitions) && !is.null(partitions)){
         stopifnot(is.data.table(partitions))
     } else partitions = data.table(NULL)
     partition.by = nondotnames(partitions)
     setkeyv(partitions, if(length(partition.by)) partition.by)
     if(nrow(partitions) > length(rscl)) stop(sprintf("Number of new partitions is %s while number of defined nodes only %s. You can create new column unique for each node.", nrow(partitions), length(rscl)))
-    structure(bdt, class = "big.data.table", rscl = rscl, partitions = partitions)
+    bdt = data.table(NULL)
+    structure(bdt, class = "big.data.table", rscl = rscl, var = var, partitions = partitions)
 }
 
 # as.big.data.table ----
@@ -86,8 +88,8 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
         partitions = unique(bdt.eval(x, expr = qpartition, lazy = FALSE, parallel = parallel), by = partition.by)
     }
     # return big.data.table class
-    bdt = RS.eval(x[[1L]], x[0L])
-    big.data.table(x = bdt, rscl = x, partitions = partitions)
+    #bdt = RS.eval(x[[1L]], x[0L])
+    big.data.table(var = "x", rscl = x, partitions = partitions)
 }
 
 # .data.table - having data loaded locally in R ----
@@ -110,8 +112,8 @@ as.big.data.table.data.table = function(x, rscl, partition.by, partitions, paral
         partitions = unique(x, by = partition.by)[, c(partition.by), with=FALSE]
     }
     # struct object to return
-    bdt = x[0L]
-    bdt = big.data.table(x = bdt, rscl = rscl, partitions = partitions)
+    #bdt = x[0L]
+    bdt = big.data.table(var = "x", rscl = rscl, partitions = partitions)
     # send data to nodes
     bdt.assign(bdt, name = "x", value = x, parallel = parallel)
     # validate
@@ -125,5 +127,5 @@ as.big.data.table.data.table = function(x, rscl, partition.by, partitions, paral
 # as.data.table.big.data.table - extracting data from nodes to local R session ----
 
 as.data.table.big.data.table = function(x, ...){
-    bdt.eval(x, x, try=TRUE)
+    bdt.eval(x, x, silent=TRUE)
 }

@@ -24,9 +24,11 @@ rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL
 dim.big.data.table = function(x){
     nodes.ok = is.big.data.table(x, check.nodes = TRUE)
     if(!all(nodes.ok)) stop(sprintf("Variable 'x' data.table does not exist on %s nodes.", paste(which(!nodes.ok), collapse = ", ")))
-    nc = length(x)
-    nr = bdt.eval(x, nrow(x), lazy = TRUE, simplify = TRUE, rbind = FALSE)
-    c(sum(nr), nc)
+    dimx = bdt.eval(x, dim(x), lazy = TRUE, simplify = TRUE, rbind = FALSE)
+    nr = sapply(dimx, `[`, 1L)
+    nc = sapply(dimx, `[`, 2L)
+    if(uniqueN(nc)!=1L) stop("big.data.table nodes various in number of columns.")
+    c(sum(nr), nc[[1L]])
 }
 
 print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quote = FALSE, ...){
@@ -56,17 +58,18 @@ print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quo
 }
 
 str.big.data.table = function(object, unclass = FALSE, ...){
+    var = attr(object, "var")
     if(unclass){
-        str(setDT(base::unclass(object)))
+        str(core.data.table(object, var))
         return(invisible())
     }
-    qdim = quote(dim(x))
+    qdim = substitute(dim(.x), list(.x = as.name(var)))
     dims.nodes = bdt.eval(object, qdim, lazy = FALSE, parallel = FALSE)
     nrows = sapply(dims.nodes, `[[`, 1L)
     ncols = unique(sapply(dims.nodes, `[[`, 2L))
     nnodes = length(dims.nodes)
     if(length(ncols)!=1L) stop("Nodes differs in data.table structure in terms of columns number. Use: `bdt.eval(bdt, capture.output(str(x)))` to investigate.")
-    core.dt = as.data.table(lapply(object, function(x) x))
+    core.dt = core.data.table(object, var)#as.data.table(lapply(object, function(x) x)) # 0 rows template
     dtcols = capture.output(str(core.dt, give.attr = FALSE))[-1L]
     prnt = character()
     prnt["header"] = sprintf("'big.data.table': %s obs. of %s variable%s across %s node%s%s", sum(nrows), ncols, if(ncols!=1L) "s" else "", nnodes, if(nnodes!=1L) "s" else "", if(ncols > 0L) ":" else "")
@@ -85,7 +88,9 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 is.big.data.table = function(x, check.nodes = FALSE){
     if(!inherits(x, "big.data.table")) return(FALSE)
     if(!check.nodes) return(TRUE)
-    is.node = quote(exists("x") && is.data.table(x))
+    var = attr(x, "var", exact = TRUE)
+    if(is.null(var)) var = "x"
+    is.node = substitute(exists(.var) && is.data.table(.x), list(.var = var, .x = as.name(var)))
     return(bdt.eval(x, is.node, lazy = FALSE, simplify = TRUE, rbind = FALSE, parallel = FALSE))
 }
 
@@ -97,20 +102,26 @@ is.big.data.table = function(x, check.nodes = FALSE){
 #' @param send logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.
 #' @param simplify logical if *TRUE* (default) it will simplify list of 1 length same type objects to vector.
 #' @param rbind logical if *TRUE* (default) results are data.table they will be rbinded.
-#' @param try should be wrapped into tryCatch for errors and warnings? default (TRUE), means that warnings will not return the actual value.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
+#' @param silent should be silently catched by `try` or `logR` if enabled.
+#' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
-bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, try = TRUE, parallel = TRUE){
+bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
     stopifnot(is.big.data.table(x) || is.rsc(x, silent = TRUE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
-    if(isTRUE(getOption("bigdatatable.verbose"))){
-        nnodes = length(rscl)
-        ts = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) microbenchmarkCore::get_nanotime() else proc.time()[[3L]]
-        cat(sprintf("big.data.table: submitting data.table queries to %s nodes %s.\n", nnodes, ifelse(isTRUE(parallel), "in parallel", "sequentially"), sep=""))
-    }
     if(isTRUE(lazy)) expr = substitute(expr)
-    if(!missing(send) && isTRUE(send)) expr = substitute({expr; TRUE}, list(expr=expr))
-    if(!missing(try) && isTRUE(try)) expr = substitute(tryCatch(expr, error = function(e) e, warning = function(w) w), list(expr=expr))
+    # logging and error catching
+    if(!.log){
+        if(isTRUE(silent)) expr = substitute(tryCatch(.expr, error = function(e) e, warning = function(w) w), list(.expr=expr))
+    }
+    if(.log){
+        expr = substitute(
+            logR(.expr, alert = .alert, silent = .silent, .log = ..log),
+            list(.expr=expr, .alert=!silent, .silent=silent, ..log=.log)
+        )
+    }
+    if(!missing(send) && isTRUE(send)) expr = substitute({.expr; invisible(TRUE)}, list(.expr=expr))
+    # execute
     if(!parallel){
         x = lapply(rscl, RS.eval, expr, lazy = FALSE)
     }
@@ -118,20 +129,9 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
         invisible(lapply(rscl, RS.eval, expr, wait = FALSE, lazy = FALSE))
         x = lapply(rscl, RS.collect)
     }
-    if(isTRUE(getOption("bigdatatable.verbose"))){
-        timing = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) (microbenchmarkCore::get_nanotime() - ts) * 1e-9 else proc.time()[[3L]] - ts
-        cat(sprintf("big.data.table: data.table queries collected from %s nodes in %.4f seconds.\n", nnodes, timing), sep="")
-    }
+    # format results
     if(rbind && is.data.table(x[[1L]])){
-        if(isTRUE(getOption("bigdatatable.verbose"))){
-            ts = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) microbenchmarkCore::get_nanotime() else proc.time()[[3L]]
-            cat(sprintf("big.data.table: row bind data collected from %s nodes.\n", nnodes, sep=""))
-        }
         x = rbindlist(x)
-        if(isTRUE(getOption("bigdatatable.verbose"))){
-            timing = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) (microbenchmarkCore::get_nanotime() - ts) * 1e-9 else proc.time()[[3L]] - ts
-            cat(sprintf("big.data.table: data binded in %.4f seconds.\n", timing), sep="")
-        }
     } else if(simplify && length(x) && length(x[[1L]])==1 && is.atomic(x[[1L]])){
         if(all(sapply(x, length)==1L) && all(sapply(x, is.atomic)) && length(unique(sapply(x, typeof)))==1L) x = simplify2array(x)
     }
@@ -234,13 +234,40 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @param \dots arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @param outer.aggregate logical, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc.
+#' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @note Results from nodes are rbinded and the same call is evalated on combined results. That means the column names cannot be renamed or simplified to vector in `...` call. Use `[[.big.data.table` for deeper flexibility.
 #' @return data.table object.
-"[.big.data.table" = function(x, ..., parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",TRUE)){
+"[.big.data.table" = function(x, ..., new.var, new.copy = FALSE, parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",FALSE), .log = getOption("bigdatatable.log",FALSE)){
     dtq = match.call(expand.dots = FALSE)$`...`
-    dtcall = as.call(c(list(as.symbol("["), x = as.name("x")), dtq))
+    var = attr(x, "var", exact = TRUE)
+    dtcall = as.call(c(list(as.symbol("["), x = as.name(var)), dtq))
+    # allow copy results into new variable
+    if(!missing(new.var)){
+        stopifnot(is.character(new.var), length(new.var)==1L)
+        if(isTRUE(new.copy)) dtcall = substitute(copy(.dtcall), list(.dtcall = dtcall))
+        dtcall = substitute(.var <- .expr, list(.var = as.name(new.var), .expr = dtcall))
+        send = TRUE
+    } else send = FALSE
     # bdt node eval
-    x = bdt.eval(x, expr = dtcall, lazy = FALSE, parallel = parallel)
+    if(!.log){
+        x = bdt.eval(x, expr = dtcall, lazy = FALSE, parallel = parallel, .log = .log)
+    }
+    if(.log){
+        # substitute to have a nice logr.expr field
+        bdt.expr = substitute(
+            bdt.eval(x, expr = .expr, lazy = TRUE, parallel = .parallel, .log = .log),
+            list(.expr = dtcall, .send = send, .parallel = parallel, ..log = .log)
+        )
+        x = eval(substitute(
+            logR(.expr, silent = FALSE, .log = ..log),
+            list(.expr=bdt.expr, ..log=.log)
+        ))
+    }
+    # potentially return new big.data.table
+    if(!missing(new.var)){
+        warninigs("!missing(new.var) return new big.data.table instead of returninig data")
+        return(big.data.table(var = new.var))
+    }
     # aggregate results from nodes
     if(outer.aggregate) x = eval(dtcall)
     return(x)
@@ -257,12 +284,32 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @param simplify logical passed to `bdt.eval`, affects the type of returned object.
 #' @param rbind logical passed to `bdt.eval`, affects the type of returned object.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
+#' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.
-"[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE){
+"[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
     # when `j` provided it return empty column from bdt to get a class of column
     if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(unclass(x)[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
     rscl = attr(x, "rscl")
-    if(missing(i)) i = seq_along(rscl)
-    bdt.eval(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel)
+    if(missing(i)){
+        all.nodes = TRUE
+        i = seq_along(rscl)
+    } else {
+        stopifnot(is.numeric(i))
+        all.nodes = FALSE
+    }
+    if(!.log){
+        bdt.eval(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, .log = .log)
+    } else {
+        # substitute to have a nice logr.expr field
+        rscl.i = if(!all.nodes) call("[",as.name("rscl"), i) else as.name("rscl")
+        bdt.expr = substitute(
+            bdt.eval(.rscl, expr = .expr, lazy = TRUE, send = .send, simplify = .simplify, rbind = .rbind, parallel = .parallel, .log = ..log),
+            list(.rscl = rscl.i, .expr = expr, .send = send, .simplify = simplify, .rbind = rbind, .parallel = parallel, ..log = .log)
+        )
+        eval(substitute(
+            logR(.expr, silent = FALSE, .log = ..log),
+            list(.expr=bdt.expr, ..log=.log)
+        ))
+    }
 }

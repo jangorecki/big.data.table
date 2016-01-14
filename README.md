@@ -2,10 +2,9 @@ Distributed parallel computing on data.table.
 
 # Installation
 
-Below commands will install latest stable big.data.table release.  
+Below commands will install latest big.data.table release.  
 
 ```r
-install.packages("microbenchmarkCore", repos = "https://olafmersmann.github.io/drat")
 install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
 install.packages("data.table", repos = "https://cran.rstudio.com")
 install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table")
@@ -15,15 +14,18 @@ To use development version install from [big.data.table](https://gitlab.com/jang
 
 # Starting nodes
 
+Nodes are started as processes working in the background as services.  
+You can use docker image based on Ubuntu 14.04 configured for `big.data.table` with postgres connection support. That still requires you to have a postgres instance - those are easy to start from docker too, see []().  
+
 ## Run nodes as docker services
 
 Docker image details: [jangorecki/r-data.table](https://hub.docker.com/r/jangorecki/r-data.table)
 
 ```sh
-docker run -d -p 33311:6311 --name=rnode11 jangorecki/r-data.table
-docker run -d -p 33312:6311 --name=rnode12 jangorecki/r-data.table
-docker run -d -p 33313:6311 --name=rnode13 jangorecki/r-data.table
-docker run -d -p 33314:6311 --name=rnode14 jangorecki/r-data.table
+docker run -d -h rnode11 -p 33311:6311 --name=rnode11 jangorecki/r-data.table-pg
+docker run -d -h rnode12 -p 33312:6311 --name=rnode12 jangorecki/r-data.table-pg
+docker run -d -h rnode13 -p 33313:6311 --name=rnode13 jangorecki/r-data.table-pg
+docker run -d -h rnode14 -p 33314:6311 --name=rnode14 jangorecki/r-data.table-pg
 ```
 
 ## Run nodes from R
@@ -49,7 +51,7 @@ library(big.data.table)
 
 port = 33311:33314
 # wrapper to lapply on RS.connect with recycling
-rscl = rsc(port)
+rscl = rsc(port, host="172.17.0.1")
 # print objects in working directory of each node
 lapply(rscl, RS.eval, ls())
 
