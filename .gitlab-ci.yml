@@ -1,9 +1,4 @@
-image: jangorecki/r-base-dev
-
-before_script:
-  - Rscript -e 'install.packages("microbenchmarkCore", repos = "https://olafmersmann.github.io/drat")'
-  - Rscript -e 'install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")'
-  - Rscript -e 'install.packages("data.table", repos = "https://cran.rstudio.com")'
+image: jangorecki/r-data.table-pg
 
 test:
   script:
