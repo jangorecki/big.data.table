@@ -24,7 +24,9 @@ rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL
 dim.big.data.table = function(x){
     nodes.ok = is.big.data.table(x, check.nodes = TRUE)
     if(!all(nodes.ok)) stop(sprintf("Variable 'x' data.table does not exist on %s nodes.", paste(which(!nodes.ok), collapse = ", ")))
-    dimx = bdt.eval(x, dim(x), lazy = TRUE, simplify = TRUE, rbind = FALSE)
+    var = attr(x, "var")
+    dimq = substitute(dim(.x), list(.x = as.name(var)))
+    dimx = bdt.eval(x, dimq, lazy = FALSE, simplify = TRUE, rbind = FALSE)
     nr = sapply(dimx, `[`, 1L)
     nc = sapply(dimx, `[`, 2L)
     if(uniqueN(nc)!=1L) stop("big.data.table nodes various in number of columns.")
@@ -41,19 +43,26 @@ print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quo
         }
         return(invisible())
     }
+    var = attr(x, "var")
     rscl = attr(x, "rscl")
-    qh = substitute(head(x, topn), list(topn = topn))
+    if(length(rscl)==1L) warning("Running big.data.table with single node backend? print will be incorrect. Contribution welcome.")
+    qh = substitute(head(.x, topn), list(.x = as.name(var), topn = topn))
     head.dt = RS.eval(rscl[[1L]], qh, wait = TRUE, lazy = FALSE)
-    qt = substitute(tail(x, topn), list(topn = topn))
+    qt = substitute(tail(.x, topn), list(.x = as.name(var), topn = topn))
     tail.dt = RS.eval(rscl[[length(rscl)]], qt, wait = TRUE, lazy = FALSE)
-    toprint = rbind(head.dt, tail.dt)
-    rn = c(seq_len(nrow(head.dt)), seq.int(to = dims[[1L]], length.out = nrow(tail.dt)))
-    toprint = format(toprint, ...)
-    rownames(toprint) = paste(format(rn, right=TRUE, scientific=FALSE), ":", sep="")
-    if(is.null(names(x))) colnames(toprint) = rep("NA", ncol(toprint))
-    toprint = rbind(head(toprint, nrow(head.dt)),"---"="", tail(toprint, nrow(tail.dt)))
-    rownames(toprint) = format(rownames(toprint), justify="right")
-    print(toprint, right=TRUE, quote=quote)
+    #sapply(head.dt, is.character)
+    #toprint = rbind(head.dt, head.dt[NA][, (), .SDcols = sapply(head.dt, is.character)], tail.dt)
+    cat(capture.output(print(head.dt)),
+        "---",
+        capture.output(print(tail.dt))[-1L], # remove column names from bottom part
+        sep = "\n")
+    #     rn = c(seq_len(nrow(head.dt)), seq.int(to = dims[[1L]], length.out = nrow(tail.dt)))
+    #     toprint = format(toprint, ...)
+    #     rownames(toprint) = paste(format(rn, right=TRUE, scientific=FALSE), ":", sep="")
+    #     if(is.null(names(x))) colnames(toprint) = rep("NA", ncol(toprint))
+    #     toprint = rbind(head(toprint, nrow(head.dt)),"---"="", tail(toprint, nrow(tail.dt)))
+    #     rownames(toprint) = format(rownames(toprint), justify="right")
+    #     print(toprint, right=TRUE, quote=quote)
     return(invisible())
 }
 
@@ -241,6 +250,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @return data.table object.
 "[.big.data.table" = function(x, ..., new.var, new.copy = FALSE, parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",FALSE), .log = getOption("bigdatatable.log",FALSE)){
     dtq = match.call(expand.dots = FALSE)$`...`
+    rscl = attr(x, "rscl", exact = TRUE)
     var = attr(x, "var", exact = TRUE)
     dtcall = as.call(c(list(as.symbol("["), x = as.name(var)), dtq))
     # allow copy results into new variable
@@ -267,8 +277,8 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     }
     # potentially return new big.data.table
     if(!missing(new.var)){
-        warninigs("!missing(new.var) return new big.data.table instead of returninig data")
-        return(big.data.table(var = new.var))
+        #warning("!missing(new.var) return new big.data.table instead of returninig data")
+        return(big.data.table(var = new.var, rscl = rscl))
     }
     # aggregate results from nodes
     if(outer.aggregate) x = eval(dtcall)
