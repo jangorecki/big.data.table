@@ -8,4 +8,4 @@ Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
 Description: New big.data.table class which behaves like data.table but distributes processing to set of nodes.
 Imports: data.table (>= 1.9.6), Rserve, RSclient
 License: GPL-3
-Suggests: logR
+Suggests: logR, pg

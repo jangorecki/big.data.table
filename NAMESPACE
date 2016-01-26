@@ -4,6 +4,7 @@ import(Rserve)
 import(RSclient)
 
 # to big.data.table
+export(big.data.table)
 export(core.data.table)
 export(as.big.data.table)
 S3method(as.big.data.table, data.table)

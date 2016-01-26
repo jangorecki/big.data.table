@@ -1,7 +1,7 @@
 #' @title big.data.table-package
 #' @description Leverage data.table onto set of Rserve nodes.
 #' @details
-#' Use `as.big.data.table` methods to extract/load/assign/populate data.
+#' Use `as.big.data.table` methods to extract/load/assign/populate data to a list of R node connections.
 #' Methods for `function` and `call` will be evaluated remotly, method for `data.table` will be evaluated locally and assigned to nodes.
 #' @aliases bdt big.dt big.data.table
 #' @docType package
@@ -23,8 +23,8 @@ rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL
 
 dim.big.data.table = function(x){
     nodes.ok = is.big.data.table(x, check.nodes = TRUE)
-    if(!all(nodes.ok)) stop(sprintf("Variable 'x' data.table does not exist on %s nodes.", paste(which(!nodes.ok), collapse = ", ")))
     var = attr(x, "var")
+    if(!all(nodes.ok)) stop(sprintf("Variable '%s' data.table does not exist on %s nodes.", var, paste(which(!nodes.ok), collapse = ", ")))
     dimq = substitute(dim(.x), list(.x = as.name(var)))
     dimx = bdt.eval(x, dimq, lazy = FALSE, simplify = TRUE, rbind = FALSE)
     nr = sapply(dimx, `[`, 1L)
@@ -98,7 +98,6 @@ is.big.data.table = function(x, check.nodes = FALSE){
     if(!inherits(x, "big.data.table")) return(FALSE)
     if(!check.nodes) return(TRUE)
     var = attr(x, "var", exact = TRUE)
-    if(is.null(var)) var = "x"
     is.node = substitute(exists(.var) && is.data.table(.x), list(.var = var, .x = as.name(var)))
     return(bdt.eval(x, is.node, lazy = FALSE, simplify = TRUE, rbind = FALSE, parallel = FALSE))
 }
