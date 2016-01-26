@@ -1,11 +1,11 @@
 Package: big.data.table
 Type: Package
-Title: Distributed computing for data.table
+Title: Parallel distributed computing for data.table
 Version: 0.3.1
 Date: 2016-01-13
 Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
-Description: New big.data.table class which behaves like data.table but distributes processing to set of nodes.
+Description: New big.data.table class which behaves like data.table but distributes processing to set of R nodes.
 Imports: data.table (>= 1.9.6), Rserve, RSclient
 License: GPL-3
 Suggests: logR, pg
