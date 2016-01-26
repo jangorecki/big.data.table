@@ -45,24 +45,18 @@ print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quo
     }
     var = attr(x, "var")
     rscl = attr(x, "rscl")
-    if(length(rscl)==1L) warning("Running big.data.table with single node backend? print will be incorrect. Contribution welcome.")
+    if(length(rscl)==1L) warning("Running big.data.table with single node, print will be incorrect.")
     qh = substitute(head(.x, topn), list(.x = as.name(var), topn = topn))
     head.dt = RS.eval(rscl[[1L]], qh, wait = TRUE, lazy = FALSE)
+    if(!nrow(head.dt)) warning("First node doesn't have any rows, print will be incorrect.")
     qt = substitute(tail(.x, topn), list(.x = as.name(var), topn = topn))
     tail.dt = RS.eval(rscl[[length(rscl)]], qt, wait = TRUE, lazy = FALSE)
-    #sapply(head.dt, is.character)
-    #toprint = rbind(head.dt, head.dt[NA][, (), .SDcols = sapply(head.dt, is.character)], tail.dt)
-    cat(capture.output(print(head.dt)),
-        "---",
-        capture.output(print(tail.dt))[-1L], # remove column names from bottom part
-        sep = "\n")
-    #     rn = c(seq_len(nrow(head.dt)), seq.int(to = dims[[1L]], length.out = nrow(tail.dt)))
-    #     toprint = format(toprint, ...)
-    #     rownames(toprint) = paste(format(rn, right=TRUE, scientific=FALSE), ":", sep="")
-    #     if(is.null(names(x))) colnames(toprint) = rep("NA", ncol(toprint))
-    #     toprint = rbind(head(toprint, nrow(head.dt)),"---"="", tail(toprint, nrow(tail.dt)))
-    #     rownames(toprint) = format(rownames(toprint), justify="right")
-    #     print(toprint, right=TRUE, quote=quote)
+    if(!nrow(tail.dt)) warning("Last node doesn't have any rows, print will be incorrect.")
+    prnt = list()
+    if(nrow(head.dt)) prnt[["head"]] = capture.output(print(head.dt, row.names=FALSE))
+    if(nrow(head.dt) || nrow(tail.dt)) prnt[["line"]] = "---"
+    if(nrow(tail.dt)) prnt[["tail"]] = capture.output(print(tail.dt, row.names=FALSE))[-1L] # dropping col names
+    cat(unlist(prnt), sep = "\n")
     return(invisible())
 }
 
