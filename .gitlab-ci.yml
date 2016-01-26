@@ -1,7 +1,34 @@
 image: jangorecki/r-data.table-pg
 
-test:
+before_script:
+  - R CMD build . --no-build-vignettes --no-manual # to be removed after gitlab-ci-multi-runner#157
+
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
   script:
     - R CMD build . --no-build-vignettes --no-manual
-    - PKG_FILE_NAME=$(ls -1t *.tar.gz | head -n 1)
-    - R CMD check "${PKG_FILE_NAME}" --no-build-vignettes --no-manual --as-cran
+
+test:
+  stage: test
+  script:
+    - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-vignettes --no-build-vignettes --no-manual --as-cran
+
+pages:
+  stage: deploy
+  script:
+    - R CMD INSTALL --html $(ls -1t *.tar.gz | head -n 1)
+    - mkdir public public/html
+    - Rscript -e 'install.packages("drat", repos = "https://eddelbuettel.github.io/drat")'
+    - Rscript -e 'drat::insertPackage(list.files(pattern = "*\\.tar\\.gz$"), "public")'
+    - Rscript -e 'setwd("public"); invisible(sapply(list.files(system.file("html", package="data.table"), full.names = TRUE), file.copy, to = "html", recursive = TRUE))'
+    - echo '<html><body><h1>big.data.table</h1><br/><h3>Parallel distributed computing for data.table</h3><br/><br/><a href="big.data.table/html/00Index.html">manual</a><br/><br/>Install from R: <pre><code>install.packages("big.data.table", repos = "http://jangorecki.gitlab.io/big.data.table")</code></pre></body></html>' > public/index.html
+    - Rscript -e 'file.copy(system.file("DESCRIPTION", package="big.data.table"), to="public")'
+  artifacts:
+    paths:
+      - public
+
