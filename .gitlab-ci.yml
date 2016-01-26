@@ -23,12 +23,11 @@ pages:
   script:
     - R CMD INSTALL --html $(ls -1t *.tar.gz | head -n 1)
     - mkdir public public/html
+    - Rscript -e 'setwd("public"); invisible(sapply(list.files(system.file("html", package="big.data.table"), full.names = TRUE), file.copy, to = "html", recursive = TRUE))'
+    - echo '<html><body><h1>big.data.table</h1><br/><h3>Parallel distributed computing for data.table</h3><br/><br/><a href="big.data.table/html/00Index.html">manual</a><br/><br/>Install from R:<br/><pre><code>install.packages("big.data.table", repos = "http://jangorecki.gitlab.io/big.data.table")</code></pre></body></html>' > public/index.html
+    - Rscript -e 'file.copy(system.file("DESCRIPTION", package="big.data.table"), to="public")'
     - Rscript -e 'install.packages("drat", repos = "https://eddelbuettel.github.io/drat")'
     - Rscript -e 'drat::insertPackage(list.files(pattern = "*\\.tar\\.gz$"), "public")'
-    - Rscript -e 'setwd("public"); invisible(sapply(list.files(system.file("html", package="big.data.table"), full.names = TRUE), file.copy, to = "html", recursive = TRUE))'
-    - echo '<html><body><h1>big.data.table</h1><br/><h3>Parallel distributed computing for data.table</h3><br/><br/><a href="big.data.table/html/00Index.html">manual</a><br/><br/>Install from R: <pre><code>install.packages("big.data.table", repos = "http://jangorecki.gitlab.io/big.data.table")</code></pre></body></html>' > public/index.html
-    - Rscript -e 'file.copy(system.file("DESCRIPTION", package="big.data.table"), to="public")'
   artifacts:
     paths:
       - public
-
