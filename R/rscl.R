@@ -11,7 +11,7 @@
 #' @param pkgs character vector of packages to load after connect to node.
 #' @return List of active connections to Rserve nodes.
 rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.getenv("RSERVE_HOST", "127.0.0.1"), tls = FALSE, proxy.target = NULL, proxy.wait = TRUE, pkgs = character()){
-    # - [ ] nice recycling of attributes to easy setup set of nodes
+    # - [x] nice recycling of attributes to easy setup set of nodes
     lp = length(port)
     lh = length(host)
     stopifnot(lp >= 1L, lh >= 1L)
@@ -41,6 +41,7 @@ rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.get
 #' @param quietly logical defaul TRUE, no warning.
 #' @return Logical matrix.
 rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly = TRUE){
+    stopifnot(is.rscl(rscl), is.character(package), length(package) > 0L, is.logical(quietly))
     # workaround check warning for use of "require"
     require_call = function(package, quietly){
         substitute(

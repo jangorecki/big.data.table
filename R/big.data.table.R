@@ -9,16 +9,19 @@
 #' @name big.data.table-package
 NULL
 
-#' @title Row bind lapply results
-#' @description Wrapper on `rbindlist(lapply(...))`.
-#' @param X vector (atomic or list) passed to `lapply`.
-#' @param FUN function passed to `lapply`.
-#' @param \dots optional arguments to `FUN`.
-#' @param use.names logical passed to `rbindlist`.
-#' @param fill logical passed to `rbindlist`.
-#' @param idcol logical or  character passed to `rbindlist`.
-rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL){
-    rbindlist(lapply(X = X, FUN = FUN, ... = ...), use.names=use.names, fill=fill, idcol=idcol)
+# *.big.data.table ----
+
+#' @title Test if object is big.data.table
+#' @param x R object.
+#' @param check.nodes logical default FALSE, when TRUE it will validate that nodes have data.table as defined variable.
+#' @return For `check.nodes=FALSE` (default) a scalar logical if *x* inherits from *big.data.table*. For `check.nodes=TRUE` vector of results from expression `exists("x") && is.data.table(x)` on each node.
+is.big.data.table = function(x, check.nodes = FALSE){
+    if(!inherits(x, "big.data.table")) return(FALSE)
+    if(!check.nodes) return(TRUE)
+    var = attr(x, "var")
+    rscl = attr(x, "rscl")
+    is.node = substitute(exists(.var) && is.data.table(.x), list(.var = var, .x = as.name(var)))
+    rscl.eval(rscl, is.node, lazy = FALSE)
 }
 
 dim.big.data.table = function(x){
@@ -86,18 +89,7 @@ str.big.data.table = function(object, unclass = FALSE, ...){
     invisible()
 }
 
-#' @title Test if object is big.data.table
-#' @param x R object.
-#' @param check.nodes logical default FALSE, when TRUE it will validate that nodes have data.table as defined variable.
-#' @return For `check.nodes=FALSE` (default) a scalar logical if *x* inherits from *big.data.table*. For `check.nodes=TRUE` vector of results from expression `exists("x") && is.data.table(x)` on each node.
-is.big.data.table = function(x, check.nodes = FALSE){
-    if(!inherits(x, "big.data.table")) return(FALSE)
-    if(!check.nodes) return(TRUE)
-    var = attr(x, "var")
-    rscl = attr(x, "rscl")
-    is.node = substitute(exists(.var) && is.data.table(.x), list(.var = var, .x = as.name(var)))
-    rscl.eval(rscl, is.node, lazy = FALSE)
-}
+# bdt.* ----
 
 #' @title big.data.table evaluate on nodes
 #' @description Main engine for passing queries to nodes, control parallelization, rbinding or simplifing returned object. Allows to measure timing and verbose messages.
@@ -234,6 +226,8 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     return(x)
 }
 
+# sub.bdt ----
+
 #' @title Subset from big.data.table
 #' @param x big.data.table object.
 #' @param \dots arguments passed to each node `[.data.table` call: *i, j, by, keyby...*.
@@ -320,4 +314,32 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
             list(.expr=bdt.expr, ..log=.log)
         ))
     }
+}
+
+# utils ----
+
+nondotnames = function(x){
+    nm = names(x)
+    nm[!sapply(nm, substr, 1L, 1L)=="."]
+}
+
+#' @title Row bind lapply results
+#' @description Wrapper on `rbindlist(lapply(...))`.
+#' @param X vector (atomic or list) passed to `lapply`.
+#' @param FUN function passed to `lapply`.
+#' @param \dots optional arguments to `FUN`.
+#' @param use.names logical passed to `rbindlist`.
+#' @param fill logical passed to `rbindlist`.
+#' @param idcol logical or  character passed to `rbindlist`.
+rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL){
+    rbindlist(lapply(X = X, FUN = FUN, ... = ...), use.names=use.names, fill=fill, idcol=idcol)
+}
+
+#' @title Core of data.table from nodes
+#' @param x big.data.table
+#' @param var character scalar, variable name on remote node, usually 'x'.
+#' @return 0 rows data.table class object, rbind of each 0L subsets.
+core.data.table = function(x, var = "x"){
+    stopifnot(is.character(var), length(var)==1L)
+    bdt.eval(x, expr = call("[", as.name(var), 0L), lazy = FALSE)
 }

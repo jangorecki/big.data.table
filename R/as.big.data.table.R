@@ -1,16 +1,3 @@
-nondotnames = function(x){
-    nm = names(x)
-    nm[!sapply(nm, substr, 1L, 1L)=="."]
-}
-
-#' @title Core of data.table from nodes
-#' @param x big.data.table
-#' @param var character scalar, variable name on remote node, usually 'x'.
-#' @return 0 rows data.table class object, rbind of each 0L subsets.
-core.data.table = function(x, var = "x"){
-    stopifnot(is.character(var), length(var)==1L)
-    bdt.eval(x, expr = call("[", as.name(var), 0L), lazy = FALSE)
-}
 
 # big.data.table ----
 
@@ -41,13 +28,13 @@ as.big.data.table = function(x, ...){
     UseMethod("as.big.data.table")
 }
 
-# .function - having cluster working and source data available to each node ----
+# .function - having cluster working and source data available to each node
 
 #' @rdname as.big.data.table
 as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
     # assign function to nodes
     fun.var = substitute(x)
-    if(!is.name(fun.var)) stop("Function provided as 'x' arg must not be an anonymous function.")
+    if(!is.name(fun.var)) stop("Function provided as 'x' arg must not be an anonymous function, assign it to variable locally and pass the variable to 'x'.")
     rscl.assign(rscl, as.character(fun.var), value = x)
     # prepare call
     fun.args = match.call(expand.dots = FALSE)$`...`
@@ -56,7 +43,7 @@ as.big.data.table.function = function(x, rscl, partition.by, partitions, paralle
     as.big.data.table.call(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
 
-# .call - having cluster working and source data available to each node ----
+# .call - having cluster working and source data available to each node
 
 #' @rdname as.big.data.table
 as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
@@ -68,7 +55,7 @@ as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = 
     as.big.data.table.list(x = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
 
-# .list - having cluster working and loaded with data already ----
+# .list - having cluster working and loaded with data already
 
 #' @rdname as.big.data.table
 as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, ...){
@@ -87,23 +74,21 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
     # validate existing data
     qvalidate = quote(exists("x") && is.data.table(x))
     if(length(partition.by)) qvalidate = substitute(qvalidate && all(partition.by %in% names(x)), list(qvalidate = qvalidate, partition.by = partition.by))
-    rvalidate = sapply(x, RS.eval, qvalidate, lazy = FALSE)
+    rvalidate = rscl.eval(x, qvalidate, lazy = FALSE)
     if(!all(rvalidate)) stop(sprintf("Following nodes does not have 'x' data.table in R_GlobalEnv: %s. You should use *.function or *.call methods. If sending data from local R session then use *.data.table method.", paste(which(!rvalidate), collapse=", ")))
     # check colnames match
-    colnames = lapply(x, RS.eval, names(x))
-    if(!identical(colnames[[1L]], unique(unname(unlist(colnames))))) stop(sprintf("Data stores on the nodes varies in structure. Column names does not match."))
+    colnames = rscl.eval(x, names(x), simplify = FALSE)
+    if(!identical(colnames[[1L]], unique(unname(unlist(colnames))))) stop(sprintf("Data storED on the nodes varies in structure. Column names does not match."))
     # provided partition.by but not partitions - it will compute partitions
     if(length(partition.by) && !length(partitions)){
-        qpartition = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE],
-                                list(partition.by = partition.by))
+        qpartition = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by = partition.by))
         partitions = unique(bdt.eval(x, expr = qpartition, lazy = FALSE, parallel = parallel), by = partition.by)
     }
     # return big.data.table class
-    #bdt = RS.eval(x[[1L]], x[0L])
     big.data.table(var = "x", rscl = x, partitions = partitions)
 }
 
-# .data.table - having data loaded locally in R ----
+# .data.table - having data loaded locally in R
 
 #' @rdname as.big.data.table
 as.big.data.table.data.table = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
@@ -123,19 +108,20 @@ as.big.data.table.data.table = function(x, rscl, partition.by, partitions, paral
         partitions = unique(x, by = partition.by)[, c(partition.by), with=FALSE]
     }
     # struct object to return
-    #bdt = x[0L]
     bdt = big.data.table(var = "x", rscl = rscl, partitions = partitions)
     # send data to nodes
     bdt.assign(bdt, name = "x", value = x, parallel = parallel)
     # validate
     qvalidate = quote(exists("x") && is.data.table(x))
     if(length(partition.by)) qvalidate = substitute(qvalidate && all(partition.by %in% names(x)), list(qvalidate = qvalidate, partition.by = partition.by))
-    rvalidate = sapply(rscl, RS.eval, qvalidate, lazy = FALSE)
-    if(!all(rvalidate)) browser()#stop(sprintf("Following nodes does not have 'x' data.table in R_GlobalEnv: %s. You should use *.function or *.call methods. If sending data from local R session then use *.data.table method.", paste(which(!rvalidate), collapse=", ")))
+    rvalidate = rscl.eval(rscl, qvalidate, lazy = FALSE)
+    if(!all(rvalidate)) stop(sprintf("Assigning data.table to nodes failed. Following nodes does not have 'x' data.table in R_GlobalEnv: %s.", paste(which(!rvalidate), collapse=", ")))
     return(bdt)
 }
 
-# as.data.table.big.data.table - extracting data from nodes to local R session ----
+# as.*.big.data.table ----
+
+# as.data.table.big.data.table - extracting data from nodes to local R session
 
 as.data.table.big.data.table = function(x, ...){
     bdt.eval(x, x, silent=TRUE)
