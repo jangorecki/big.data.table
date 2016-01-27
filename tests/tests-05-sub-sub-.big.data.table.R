@@ -4,7 +4,7 @@ library(big.data.table)
 
 # connect
 port = 33311:33314
-rscl = rsc(port)
+rscl = rscl.connect(port, pkgs = "data.table")
 
 # populate
 gen.data = function(n = 5e4, seed = 123, ...){
@@ -13,8 +13,8 @@ gen.data = function(n = 5e4, seed = 123, ...){
 }
 bdt = as.big.data.table(x = gen.data, rscl = rscl)
 stopifnot(
-    all.equal(bdt[[expr = ls()]], setNames(rep("x", 4L), port)),
-    all.equal(bdt[[expr = ls(), simplify = FALSE]], as.list(setNames(rep("x", 4L), port))),
+    all.equal(bdt[[expr = ls()]], setNames(rep(list(c("gen.data","x")), 4L), port)),
+    all.equal(bdt[[expr = ls(), simplify = FALSE]], as.list(setNames(rep(list(c("gen.data","x")), 4L), port))),
     all.equal(bdt[[expr = is.data.table(x)]], setNames(rep(TRUE, 4L), port)),
     all.equal(bdt[[expr = exists("bdt")]], setNames(rep(FALSE, 4L), port)),
     all.equal(names(bdt[[expr = x[, .N, .(year, high)]]]), c("year","high","N")),

@@ -24,7 +24,7 @@ as.big.data.table(x, ...)
 \arguments{
 \item{x}{object to cast into big.data.table, can be data.table, function, quoted call or a list.}
 
-\item{rscl}{list of Rserve connections, can be validated by `is.rsc(rscl, silent=FALSE)`.}
+\item{rscl}{list of Rserve connections, can be validated by `is.rscl(rscl, silent=FALSE)`.}
 
 \item{partition.by}{character vector of column names to be used for partitioning, `uniqueN` by those columns should be lower than number of nodes.}
 

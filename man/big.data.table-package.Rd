@@ -11,7 +11,7 @@ Leverage data.table onto set of Rserve nodes.
 }
 \details{
 Use `as.big.data.table` methods to extract/load/assign/populate data to a list of R node connections.
-Methods for `function` and `call` will be evaluated remotly, method for `data.table` will be evaluated locally and assigned to nodes.
+Methods for `function` and `call` will be evaluated remotely, method for `data.table` will be evaluated locally and assigned to nodes.
 }
 \author{
 Jan Gorecki

@@ -4,11 +4,10 @@ library(big.data.table)
 
 # connect
 port = 33311:33314
-rscl = rsc(port)
+rscl = rscl.connect(port, pkgs = "data.table")
 
 # .function - having cluster working and source data in csv on disk of each node ----
-#options("bigdatatable.log"=TRUE)
-#options("run_id"=get_run_id())
+
 f = function(n = 1e5, ...) data.table(year = sample(2011:2014, n, TRUE), high = sample(n*0.9, n, TRUE), normal = sample(n*0.1, n, TRUE), low = sample(10, n, TRUE), value = rnorm(n))
 bdt = as.big.data.table(f, rscl, n = 2e4)
 stopifnot(

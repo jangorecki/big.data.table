@@ -51,7 +51,7 @@ library(big.data.table)
 
 port = 33311:33314
 # wrapper to lapply on RS.connect with recycling
-rscl = rsc(port, host="172.17.0.1")
+rscl = rscl.connect(port, host="172.17.0.1", pkgs = "data.table")
 # print objects in working directory of each node
 lapply(rscl, RS.eval, ls())
 
@@ -99,7 +99,7 @@ str(bdt)
 
 ```r
 port = 33311:33314
-rscl = rsc(port)
+rscl = rscl.connect(port, pkgs = "data.table")
 
 gen.data = function(n = 5e6, seed = 123, ...){
     set.seed(seed)

@@ -4,7 +4,7 @@ library(big.data.table)
 
 # connect
 port = 33311:33314
-rscl = rsc(port)
+rscl = rscl.connect(port, pkgs = "data.table")
 
 # populate
 gen.data = function(n = 5e4, seed = 123, ...){

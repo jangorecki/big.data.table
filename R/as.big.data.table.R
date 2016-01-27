@@ -15,7 +15,7 @@ core.data.table = function(x, var = "x"){
 # big.data.table ----
 
 big.data.table = function(var = "x", rscl, partitions){
-    stopifnot(is.character(var), is.rsc(rscl, silent=FALSE))
+    stopifnot(is.character(var), is.rscl(rscl, silent=FALSE))
     if(!missing(partitions) && !is.null(partitions)){
         stopifnot(is.data.table(partitions))
     } else partitions = data.table(NULL)
@@ -31,7 +31,7 @@ big.data.table = function(var = "x", rscl, partitions){
 #' @title Convert to big.data.table
 #' @param x object to cast into big.data.table, can be data.table, function, quoted call or a list.
 #' @param \dots arguments passed to methods.
-#' @param rscl list of Rserve connections, can be validated by `is.rsc(rscl, silent=FALSE)`.
+#' @param rscl list of Rserve connections, can be validated by `is.rscl(rscl, silent=FALSE)`.
 #' @param partition.by character vector of column names to be used for partitioning, `uniqueN` by those columns should be lower than number of nodes.
 #' @param partitions data.table of unique combinations of values in *partition.by* columns.
 #' @param parallel logical, see `?bdt.eval`.
@@ -45,9 +45,15 @@ as.big.data.table = function(x, ...){
 
 #' @rdname as.big.data.table
 as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
+    # assign function to nodes
+    fun.var = substitute(x)
+    if(!is.name(fun.var)) stop("Function provided as 'x' arg must not be an anonymous function.")
+    rscl.assign(rscl, as.character(fun.var), value = x)
+    # prepare call
     fun.args = match.call(expand.dots = FALSE)$`...`
-    qcall = as.call(c(list(x), fun.args))
-    as.big.data.table(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
+    qcall = as.call(c(list(fun.var), fun.args))
+    # redirect to .call method
+    as.big.data.table.call(x = qcall, rscl = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
 
 # .call - having cluster working and source data available to each node ----
@@ -56,16 +62,17 @@ as.big.data.table.function = function(x, rscl, partition.by, partitions, paralle
 as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
     # execute function on nodes
     assign_x = substitute(x <- qcall, list(qcall = x))
+    # populate bdt from call
     bdt.eval(rscl, expr = assign_x, lazy = FALSE, send = TRUE, parallel = parallel)
-    # redirect to list method
-    as.big.data.table(x = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
+    # redirect to .list method
+    as.big.data.table.list(x = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel)
 }
 
 # .list - having cluster working and loaded with data already ----
 
 #' @rdname as.big.data.table
 as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, ...){
-    stopifnot(is.rsc(x, silent=FALSE))
+    stopifnot(is.rscl(x, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table
     if(missing(partitions) || !length(partitions)) partitions = data.table(NULL)
     if(missing(partition.by) || !length(partition.by)) partition.by = character(0)
@@ -100,7 +107,7 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
 
 #' @rdname as.big.data.table
 as.big.data.table.data.table = function(x, rscl, partition.by, partitions, parallel = TRUE, ...){
-    stopifnot(is.rsc(rscl, silent=FALSE))
+    stopifnot(is.rscl(rscl, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table
     if(missing(partitions) || !length(partitions)) partitions = data.table(NULL)
     if(missing(partition.by) || !length(partition.by)) partition.by = character(0)

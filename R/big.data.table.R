@@ -2,14 +2,12 @@
 #' @description Leverage data.table onto set of Rserve nodes.
 #' @details
 #' Use `as.big.data.table` methods to extract/load/assign/populate data to a list of R node connections.
-#' Methods for `function` and `call` will be evaluated remotly, method for `data.table` will be evaluated locally and assigned to nodes.
+#' Methods for `function` and `call` will be evaluated remotely, method for `data.table` will be evaluated locally and assigned to nodes.
 #' @aliases bdt big.dt big.data.table
 #' @docType package
 #' @author Jan Gorecki
 #' @name big.data.table-package
 NULL
-
-selfNames = function(x) setNames(x, x)
 
 #' @title Row bind lapply results
 #' @description Wrapper on `rbindlist(lapply(...))`.
@@ -109,7 +107,7 @@ is.big.data.table = function(x, check.nodes = FALSE){
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
 bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
-    stopifnot(is.big.data.table(x) || is.rsc(x, silent = TRUE))
+    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     if(isTRUE(lazy)) expr = substitute(expr)
     # logging and error catching
@@ -147,7 +145,7 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
 #' @param value an R object to save on node, if it is data.table then it will be partitioned accroding to *x* partitions.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 bdt.assign = function(x, name, value, parallel = TRUE){
-    stopifnot(is.big.data.table(x) || is.rsc(x, silent = FALSE))
+    stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
     #     if(is.data.table(value) && isTRUE(getOption("bigdatatable.verbose"))){
@@ -194,7 +192,7 @@ bdt.assign = function(x, name, value, parallel = TRUE){
 #' @param parallel, see `bdt.eval`.
 #' @return big.data.table object.
 bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, parallel = TRUE){
-    stopifnot(is.big.data.table(x) || is.rsc(x, silent = FALSE))
+    stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
     partitions = if(is.big.data.table(x)) attr(x, "partitions") else data.table(NULL)
@@ -283,14 +281,14 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @param j numeric scalar, if provided then all other arguments are ignored and subset behaves the same way as for data.table, but returns 0 length column.
 #' @param expr expression to be evaluated on node where data.table objects are stored as `x` variable in `.GlobalEnv`.
 #' @param lazy logical if TRUE then *expr* is substituted.
-#' @param send logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.
+#' @param send logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table __set*__ or `:=` functions.
 #' @param i numeric restrict expression to particular nodes
 #' @param \dots ignored.
 #' @param simplify logical passed to `bdt.eval`, affects the type of returned object.
 #' @param rbind logical passed to `bdt.eval`, affects the type of returned object.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
-#' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.
+#' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as *lapply*. When using *rbind* or *simplify* the returned list be can simplified.
 "[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
     # when `j` provided it return empty column from bdt to get a class of column
     if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(core.data.table(x, attr(x, "var"))[[j]])

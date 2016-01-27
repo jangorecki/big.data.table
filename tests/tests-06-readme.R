@@ -4,8 +4,8 @@ library(big.data.table)
 
 # connect
 port = 33311:33314
-rscl = rsc(port)
-stopifnot(is.rsc(rscl))
+rscl = rscl.connect(port, pkgs = "data.table")
+stopifnot(is.rscl(rscl))
 
 # Initialize big.data.table ----
 

@@ -3,6 +3,16 @@ import(data.table)
 import(Rserve)
 import(RSclient)
 
+# rscl
+export(is.rscl)
+export(rscl.connect)
+export(rscl.eval)
+export(rscl.assign)
+export(rscl.require)
+export(rscl.clean)
+export(rscl.ls)
+export(rscl.ls.str)
+
 # to big.data.table
 export(big.data.table)
 export(core.data.table)
@@ -29,7 +39,4 @@ export(bdt.partition)
 
 # others
 export(is.big.data.table)
-export(rsc)
-export(is.rsc)
-export(clean)
 export(rbindlapply)

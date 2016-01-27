@@ -16,7 +16,7 @@
 
 \item{lazy}{logical if TRUE then *expr* is substituted.}
 
-\item{send}{logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table *set** or `:=` functions.}
+\item{send}{logical, if TRUE submit expression appended with `TRUE` to not fetch potentially big results from provided *expr*, useful for data.table __set*__ or `:=` functions.}
 
 \item{i}{numeric restrict expression to particular nodes}
 
@@ -31,7 +31,7 @@
 \item{\dots}{ignored.}
 }
 \value{
-When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as `lapply*. When using *rbind* or *simplify* the returned list be can simplified.
+When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as *lapply*. When using *rbind* or *simplify* the returned list be can simplified.
 }
 \description{
 Extract from big.data.table
