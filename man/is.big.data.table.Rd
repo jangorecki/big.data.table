@@ -8,7 +8,7 @@ is.big.data.table(x, check.nodes = FALSE)
 \arguments{
 \item{x}{R object.}
 
-\item{check.nodes}{logical default FALSE, when TRUE it will validate that nodes have *x* variable data.table}
+\item{check.nodes}{logical default FALSE, when TRUE it will validate that nodes have data.table as defined variable.}
 }
 \value{
 For `check.nodes=FALSE` (default) a scalar logical if *x* inherits from *big.data.table*. For `check.nodes=TRUE` vector of results from expression `exists("x") && is.data.table(x)` on each node.

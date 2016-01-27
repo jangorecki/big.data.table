@@ -64,7 +64,7 @@ stopifnot(
     # expected str
     isTRUE(capture.output(str(bdt, unclass=TRUE))[1L] %like% "0 obs. of  5 variables:"),
     all.equal(capture.output(str(bdt))[1L],"'big.data.table': 200000 obs. of 5 variables across 4 nodes:"),
-    all.equal((pp <- capture.output(str(bdt)))[length(pp)-2L], "row count by node:"),
+    all.equal((pp <- capture.output(str(bdt)))[length(pp)-2L], "rows count by node:"),
     all.equal((pp <- capture.output(str(bdt)))[length(pp)], "50000 50000 50000 50000 ")
 )
 

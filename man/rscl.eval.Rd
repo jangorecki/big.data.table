@@ -3,7 +3,8 @@
 \alias{rscl.eval}
 \title{Eval on list of Rserve instances}
 \usage{
-rscl.eval(rscl, x, wait = TRUE, lazy = TRUE, simplify = TRUE)
+rscl.eval(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE,
+  lazy = TRUE, simplify = TRUE)
 }
 \arguments{
 \item{rscl,}{lists of Rserve connections.}

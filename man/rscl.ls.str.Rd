@@ -3,7 +3,7 @@
 \alias{rscl.ls.str}
 \title{`ls.str` on every node}
 \usage{
-rscl.ls.str(rscl)
+rscl.ls.str(rscl = getOption("bigdatatable.rscl"))
 }
 \arguments{
 \item{rscl}{list of connections to R nodes}

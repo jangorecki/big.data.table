@@ -17,17 +17,20 @@ NULL
 #' @param use.names logical passed to `rbindlist`.
 #' @param fill logical passed to `rbindlist`.
 #' @param idcol logical or  character passed to `rbindlist`.
-rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL) rbindlist(lapply(X = X, FUN = FUN, ... = ...), use.names=use.names, fill=fill, idcol=idcol)
+rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL){
+    rbindlist(lapply(X = X, FUN = FUN, ... = ...), use.names=use.names, fill=fill, idcol=idcol)
+}
 
 dim.big.data.table = function(x){
     nodes.ok = is.big.data.table(x, check.nodes = TRUE)
     var = attr(x, "var")
+    rscl = attr(x, "rscl")
     if(!all(nodes.ok)) stop(sprintf("Variable '%s' data.table does not exist on %s nodes.", var, paste(which(!nodes.ok), collapse = ", ")))
     dimq = substitute(dim(.x), list(.x = as.name(var)))
-    dimx = bdt.eval(x, dimq, lazy = FALSE, simplify = TRUE, rbind = FALSE)
+    dimx = rscl.eval(rscl, dimq, lazy = FALSE, simplify = FALSE)
     nr = sapply(dimx, `[`, 1L)
     nc = sapply(dimx, `[`, 2L)
-    if(uniqueN(nc)!=1L) stop("big.data.table nodes various in number of columns.")
+    if(uniqueN(nc)!=1L) stop("big.data.table nodes varies in number of columns.")
     c(sum(nr), nc[[1L]])
 }
 
@@ -60,22 +63,23 @@ print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quo
 
 str.big.data.table = function(object, unclass = FALSE, ...){
     var = attr(object, "var")
+    rscl = attr(object, "rscl")
     if(unclass){
         str(core.data.table(object, var))
         return(invisible())
     }
     qdim = substitute(dim(.x), list(.x = as.name(var)))
-    dims.nodes = bdt.eval(object, qdim, lazy = FALSE, parallel = FALSE)
+    dims.nodes = rscl.eval(rscl, qdim, lazy = FALSE, simplify = FALSE)
     nrows = sapply(dims.nodes, `[[`, 1L)
     ncols = unique(sapply(dims.nodes, `[[`, 2L))
     nnodes = length(dims.nodes)
     if(length(ncols)!=1L) stop("Nodes differs in data.table structure in terms of columns number. Use: `bdt.eval(bdt, capture.output(str(x)))` to investigate.")
-    core.dt = core.data.table(object, var)#as.data.table(lapply(object, function(x) x)) # 0 rows template
+    core.dt = core.data.table(object, var)
     dtcols = capture.output(str(core.dt, give.attr = FALSE))[-1L]
     prnt = character()
     prnt["header"] = sprintf("'big.data.table': %s obs. of %s variable%s across %s node%s%s", sum(nrows), ncols, if(ncols!=1L) "s" else "", nnodes, if(nnodes!=1L) "s" else "", if(ncols > 0L) ":" else "")
     if(ncols > 0L) prnt["columns"] = paste(dtcols, collapse="\n")
-    prnt["nodes_header"] = sprintf("row count by node:")
+    prnt["nodes_header"] = sprintf("rows count by node:")
     prnt["nodes_nrow"] = paste(capture.output(print(nrows)), collapse="\n")
     if(length(partitions <- attr(object, "partitions"))) prnt["partitions"] = sprintf("'big.data.table' partitioned by '%s'.", paste(nondotnames(partitions), collapse = ", "))
     cat(prnt, sep="\n")
@@ -84,14 +88,15 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 
 #' @title Test if object is big.data.table
 #' @param x R object.
-#' @param check.nodes logical default FALSE, when TRUE it will validate that nodes have *x* variable data.table
+#' @param check.nodes logical default FALSE, when TRUE it will validate that nodes have data.table as defined variable.
 #' @return For `check.nodes=FALSE` (default) a scalar logical if *x* inherits from *big.data.table*. For `check.nodes=TRUE` vector of results from expression `exists("x") && is.data.table(x)` on each node.
 is.big.data.table = function(x, check.nodes = FALSE){
     if(!inherits(x, "big.data.table")) return(FALSE)
     if(!check.nodes) return(TRUE)
-    var = attr(x, "var", exact = TRUE)
+    var = attr(x, "var")
+    rscl = attr(x, "rscl")
     is.node = substitute(exists(.var) && is.data.table(.x), list(.var = var, .x = as.name(var)))
-    return(bdt.eval(x, is.node, lazy = FALSE, simplify = TRUE, rbind = FALSE, parallel = FALSE))
+    rscl.eval(rscl, is.node, lazy = FALSE)
 }
 
 #' @title big.data.table evaluate on nodes

@@ -3,7 +3,8 @@
 \alias{rscl.assign}
 \title{`RS.assign` for list of Rserve connections}
 \usage{
-rscl.assign(rscl, name, value, wait = TRUE, simplify = TRUE)
+rscl.assign(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE,
+  simplify = TRUE)
 }
 \arguments{
 \item{rscl,}{lists of Rserve connections.}

@@ -64,11 +64,11 @@ stopifnot(all.equal(
 dt = data.table(NULL)
 bdt = as.big.data.table(x = dt, rscl = rscl)
 stopifnot(
-    all.equal(dim(dt), c(0L,0L)),
+    all.equal(dim(bdt), c(0L,0L)),
     all.equal(capture.output(print(bdt)), "Null data.table (0 rows and 0 cols)"),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
     all.equal(unname(bdt.eval(bdt, nrow(x))), c(0L,0L,0L,0L)),
-    all.equal(capture.output(str(bdt))[1:2], c("'big.data.table': 0 obs. of 0 variables across 4 nodes", "row count by node:"))
+    all.equal(capture.output(str(bdt))[1:2], c("'big.data.table': 0 obs. of 0 variables across 4 nodes", "rows count by node:"))
 )
 # data.table nrow < nodes
 dt = data.table(a=1:3)
@@ -78,7 +78,7 @@ stopifnot(
     identical(suppressWarnings(capture.output(print(bdt))), c(" a", " 1", "---")), # edge case
     all(is.big.data.table(bdt, check.nodes = TRUE)),
     all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,0L)),
-    all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 3 obs. of 1 variable across 4 nodes:", " $ a: int ", "row count by node:"))
+    all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 3 obs. of 1 variable across 4 nodes:", " $ a: int ", "rows count by node:"))
 )
 # data.table nrow == nodes
 dt = data.table(a=1:4)
@@ -88,7 +88,7 @@ stopifnot(
     identical(capture.output(print(bdt)), c(" a", " 1", "---", " 4")),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
     all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,1L)),
-    all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 4 obs. of 1 variable across 4 nodes:", " $ a: int ", "row count by node:"))
+    all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 4 obs. of 1 variable across 4 nodes:", " $ a: int ", "rows count by node:"))
 )
 # data.table nrow == nodes+1L
 dt = data.table(a=1:5)

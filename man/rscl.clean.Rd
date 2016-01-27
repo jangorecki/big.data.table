@@ -3,7 +3,7 @@
 \alias{rscl.clean}
 \title{Force collect results to unlock error}
 \usage{
-rscl.clean(rscl)
+rscl.clean(rscl = getOption("bigdatatable.rscl"))
 }
 \arguments{
 \item{rscl}{list of connections to R nodes}

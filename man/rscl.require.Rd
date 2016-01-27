@@ -3,7 +3,7 @@
 \alias{rscl.require}
 \title{Require packages in list of Rserve instances}
 \usage{
-rscl.require(rscl, package, quietly = TRUE)
+rscl.require(rscl = getOption("bigdatatable.rscl"), package, quietly = TRUE)
 }
 \arguments{
 \item{rscl,}{lists of Rserve connections.}
