@@ -40,7 +40,7 @@ rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.get
 #' @param package character vector of packages to require on each of R node.
 #' @param quietly logical defaul TRUE, no warning.
 #' @return Logical matrix.
-rscl.require = function(rscl, package, quietly = TRUE){
+rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly = TRUE){
     # workaround check warning for use of "require"
     require_call = function(package, quietly){
         substitute(
@@ -62,7 +62,7 @@ rscl.require = function(rscl, package, quietly = TRUE){
 #' @param lazy logical default TRUE, when FALSE then *x* is quoted or a list of quoted.
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @return Logical matrix.
-rscl.eval = function(rscl, x, wait = TRUE, lazy = TRUE, simplify = TRUE){
+rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, simplify = TRUE){
     stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy))
     expr = if(isTRUE(lazy)) substitute(x) else x
     if((!lazy) && is.list(expr)){
@@ -80,7 +80,7 @@ rscl.eval = function(rscl, x, wait = TRUE, lazy = TRUE, simplify = TRUE){
 #' @param wait logical default TRUE passed to `RS.eval`.
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @return Results from `RS.assign` in `sapply`.
-rscl.assign = function(rscl, name, value, wait = TRUE, simplify = TRUE){
+rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE, simplify = TRUE){
     sapply(rscl, function(rsc) RS.assign(rsc = rsc, name = name, value = value, wait = wait), simplify = simplify)
 }
 
@@ -99,7 +99,7 @@ is.rscl = function(x, silent=TRUE){
 #' @title Force collect results to unlock error
 #' @param rscl list of connections to R nodes
 #' @return Results from `try` `RS.collect` from each node, simplified if possible.
-rscl.clean = function(rscl){
+rscl.clean = function(rscl = getOption("bigdatatable.rscl")){
     invisible(sapply(rscl, function(rsc) try(RS.collect(rsc), silent=TRUE)))
 }
 
@@ -107,14 +107,14 @@ rscl.clean = function(rscl){
 #' @param rscl list of connections to R nodes
 #' @param simplify logical default TRUE passed to `sapply`.
 #' @return `ls()` of `.GlobalEnv` from each node.
-rscl.ls = function(rscl, simplify = TRUE){
+rscl.ls = function(rscl = getOption("bigdatatable.rscl"), simplify = TRUE){
     rscl.eval(rscl, ls(envir = .GlobalEnv), simplify = simplify)
 }
 
 #' @title `ls.str` on every node
 #' @param rscl list of connections to R nodes
 #' @return Prints of `ls.str` on all nodes as side effect
-rscl.ls.str = function(rscl){
+rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")){
     prntl = rscl.eval(rscl, capture.output(print(ls.str(envir = .GlobalEnv))), simplify = FALSE)
     invisible(lapply(seq_along(prntl), function(i) cat(c(sprintf("\n# Rserve node %s ----", names(prntl)[i]), prntl[[i]]), sep = "\n")))
 }
