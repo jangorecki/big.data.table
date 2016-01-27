@@ -9,7 +9,7 @@ host = "127.0.0.1"
 port = 33311:33314
 rscl = rscl.connect(port, host)
 stopifnot(all.equal(
-    rscl.eval(rscl, ls()),
+    rscl.ls(rscl),
     setNames(rep(list(character(0)),length(port)), port)
 ))
 ## 4u port, 4 host
@@ -17,7 +17,7 @@ port = 33311:33314
 host = rep("127.0.0.1", length(port))
 rscl = rscl.connect(port, host)
 stopifnot(all.equal(
-    rscl.eval(rscl, ls()),
+    rscl.ls(rscl),
     rep(list(character(0)),length(host))
 ))
 ## 4 port, 4 host
@@ -25,7 +25,7 @@ host = rep("127.0.0.1", 4L)
 port = rep(33311, length(host))
 rscl = rscl.connect(port, host)
 stopifnot(all.equal(
-    rscl.eval(rscl, ls()),
+    rscl.ls(rscl),
     rep(list(character(0)),length(host))
 ))
 ## 1u port, 4 host
@@ -33,7 +33,7 @@ host = rep("127.0.0.1", 4L)
 port = 33311
 rscl = rscl.connect(port, host)
 stopifnot(all.equal(
-    rscl.eval(rscl, ls()),
+    rscl.ls(rscl),
     setNames(rep(list(character(0)),length(host)), host)
 ))
 
@@ -54,23 +54,12 @@ stopifnot(!rscl.require(rscl, c("asdasdasdasd","asdasdasdasd2")))
 
 # ls.str ----
 
-# lazy TRUE
 stopifnot(
-    rscl.eval(rscl, {x <- data.table(iris); TRUE}),
+    rscl.eval(rscl, {x <- data.table(iris); TRUE}, lazy = TRUE),
     length(capture.output(rscl.ls.str(rscl))) == 32L
 )
 
-# lazy FALSE
 stopifnot(
     rscl.eval(rscl, quote({y <- data.table(iris); TRUE}), lazy = FALSE),
     length(capture.output(rscl.ls.str(rscl))) == 56L
 )
-
-# lazy FALSE, expr list
-expr_list = list(
-    clean = quote(rm(list=ls())),
-    def1 = quote({a <- 1:3; TRUE}),
-    def2 = quote({b <- letters[1:2]; TRUE})
-)
-rscl.eval(rscl, expr_list, lazy = FALSE)
-stopifnot(length(capture.output(rscl.ls.str(rscl))) == 16L)

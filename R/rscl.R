@@ -49,7 +49,7 @@ rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly 
         )
     }
     expr_list = lapply(setNames(nm = package), require_call, quietly = quietly)
-    r = rscl.eval(rscl, expr_list, lazy = FALSE)
+    r = sapply(expr_list, function(expr) rscl.eval(rscl, expr, lazy = FALSE))
     if(!quietly && !all(r)) warning("Some nodes failed to load, check logical matrix returned.")
     r
 }
@@ -65,11 +65,7 @@ rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly 
 rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, simplify = TRUE){
     stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy))
     expr = if(isTRUE(lazy)) substitute(x) else x
-    if((!lazy) && is.list(expr)){
-        sapply(expr, function(expr) sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify), simplify = simplify)
-    } else {
-        sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)
-    }
+    sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)
 }
 
 #' @title `RS.assign` for list of Rserve connections
