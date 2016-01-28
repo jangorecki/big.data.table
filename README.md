@@ -12,12 +12,12 @@ install.packages("big.data.table", repos = "http://jangorecki.gitlab.io/big.data
 
 # Starting nodes
 
-Nodes are started as processes working in the background as services.  
-You can use docker image based on Ubuntu 14.04 configured for `big.data.table`.  
+Below are two options to start Rserve nodes. Follow with the second option for reproducibility on a localhost machine.  
 
 ## Run nodes as docker services
 
-Docker image details: [jangorecki/r-data.table-pg](https://hub.docker.com/r/jangorecki/r-data.table-pg)
+You can use docker image based on Ubuntu 14.04 configured for `big.data.table`, image details: [jangorecki/r-data.table-pg](https://hub.docker.com/r/jangorecki/r-data.table-pg).  
+It may be useful for fast ad-hoc remote environment setup R nodes. Commands will also work locally if you have docker installed.  
 
 ```sh
 docker run -d -h rnode11 -p 33311:6311 --name=rnode11 jangorecki/r-data.table-pg
@@ -30,9 +30,7 @@ docker run -d -h rnode14 -p 33314:6311 --name=rnode14 jangorecki/r-data.table-pg
 
 ```r
 library(Rserve)
-
 port = 33311:33314
-# start cluster
 invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
 ```
 
@@ -41,8 +39,6 @@ invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = 
 You should have nodes already started.
 
 ## Connect to R nodes
-
-Connect to R nodes.  
 
 ```r
 library(RSclient)
@@ -59,9 +55,8 @@ sapply(rscl, RS.eval, R.version.string)
 
 ## Using rscl.* wrappers
 
-`rscl.*` function are kind of intermediate step on which whole `big.data.table` package is built uppon. They makes some of the `RSclient::RS.*` functions vectorized, allowing to process a list of connections to R nodes.  
+`rscl.*` functions are kind of intermediate step on which whole `big.data.table` package is built upon. They makes some of the `RSclient::RS.*` functions vectorized, allowing to process a list of connections to R nodes.  
 It can be effectively utilized for batch access/processing any data spread across R nodes.  
-`RS.eval` allows to send expression and later collect results with `RS.collect` which allows for parallel processing.  
 
 ```r
 rscl.eval(rscl, ls())
@@ -181,13 +176,13 @@ ncol(bdt)
 bdt[, .N]
 bdt[, .(.N)]
 
-# static metadata - to be addressed better way
+# to be addressed by wrappers
 # col names
 RS.eval(rscl[[1L]], names(x))
 # col class
 RS.eval(rscl[[1L]], lapply(x, class))
 
-# `[.big.data.table` - `new.var`
+# `[.big.data.table` - `new.var` create new big.data.table from existing one
 
 bdty = bdt[, mean(Petal.Width), Species, new.var = "y"]
 str(bdty)
@@ -199,17 +194,24 @@ rscl.ls(rscl)
 
 bdt[[expr = nrow(x)]]
 
+# nrow of both datasets on nodes
 rscl.eval(rscl, c(x=nrow(x), y=nrow(y)))
 bdt[[expr = c(x=nrow(x), y=nrow(y))]]
 bdty[[expr = c(x=nrow(x), y=nrow(y))]]
 
-# this query
-bdt[, lapply(.SD, mean), Species]
-# can be expressed using the following
-rscl.eval(rscl, x[, lapply(.SD, mean), Species], simplify = FALSE)
-bdt[[expr = x[, lapply(.SD, mean), Species]]]
-# so you can join datasets within the scope of R node
+# same query different ways
+bdt[, lapply(.SD, sum), Species]
+rscl.eval(rscl, x[, lapply(.SD, sum), Species], simplify = FALSE)
+bdt[[expr = x[, lapply(.SD, sum), Species]]]
+# re-aggregate after rbind
+bdt[, lapply(.SD, sum), Species, outer.aggregate=TRUE]
+
+# having two big.data.tables and `[[` we can easily join then
 bdt[[expr = y[x, on = "Species"]]]
+
+# size
+bdt[[expr = sprintf("%.4f MB", object.size(x)/(1024^2))]]
+sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
 ```
 
 ### Partitioning big.data.table
@@ -229,10 +231,6 @@ bdt = as.big.data.table(x = dt, rscl = rscl, partition.by = partition.by)
 bdt[[expr = nrow(x)]]
 r.part = bdt[[expr = x[, .N, year], rbind = FALSE]]
 print(r.part)
-
-# size
-bdt[[expr = sprintf("%.4f MB", object.size(x)/(1024^2))]]
-sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
 
 # fetch data from all nodes to local session
 r = as.data.table(bdt)

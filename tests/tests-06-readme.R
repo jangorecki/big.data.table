@@ -142,13 +142,13 @@ ncol(bdt)
 bdt[, .N]
 bdt[, .(.N)]
 
-# static metadata - to be addressed better
+# to be addressed by wrappers
 # col names
 RS.eval(rscl[[1L]], names(x))
 # col class
 RS.eval(rscl[[1L]], lapply(x, class))
 
-# `[.big.data.table` - `new.var`
+# `[.big.data.table` - `new.var` create new big.data.table from existing one
 
 bdty = bdt[, mean(Petal.Width), Species, new.var = "y"]
 str(bdty)
@@ -160,17 +160,24 @@ rscl.ls(rscl)
 
 bdt[[expr = nrow(x)]]
 
+# nrow of both datasets on nodes
 rscl.eval(rscl, c(x=nrow(x), y=nrow(y)))
 bdt[[expr = c(x=nrow(x), y=nrow(y))]]
 bdty[[expr = c(x=nrow(x), y=nrow(y))]]
 
-# this query
-bdt[, lapply(.SD, mean), Species]
-# can be expressed using the following
-rscl.eval(rscl, x[, lapply(.SD, mean), Species], simplify = FALSE)
-bdt[[expr = x[, lapply(.SD, mean), Species]]]
-# so you can join datasets within the scope of R node
+# same query different ways
+bdt[, lapply(.SD, sum), Species]
+rscl.eval(rscl, x[, lapply(.SD, sum), Species], simplify = FALSE)
+bdt[[expr = x[, lapply(.SD, sum), Species]]]
+# re-aggregate after rbind
+bdt[, lapply(.SD, sum), Species, outer.aggregate=TRUE]
+
+# having two big.data.tables and `[[` we can easily join then
 bdt[[expr = y[x, on = "Species"]]]
+
+# size
+bdt[[expr = sprintf("%.4f MB", object.size(x)/(1024^2))]]
+sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
 
 ### Partitioning ----
 
