@@ -7,11 +7,12 @@ import(RSclient)
 export(is.rscl)
 export(rscl.connect)
 export(rscl.eval)
+export(rscl.collect)
 export(rscl.assign)
 export(rscl.require)
-export(rscl.clean)
 export(rscl.ls)
 export(rscl.ls.str)
+export(rscl.close)
 
 # to big.data.table
 export(big.data.table)

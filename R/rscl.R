@@ -1,8 +1,8 @@
 
-# RserveConnection list ----
+# rscl.* vectorized RS.* ----
 
 #' @title Connect to Rserve instances
-#' @description A wrapper to `RS.connect` function using `lapply` over recycled input arguments. It also requires data.table package.
+#' @description A wrapper to `RS.connect` function using `sapply` over recycled input arguments. It also requires data.table package.
 #' @param port integer vector of port numbers
 #' @param host character scalar, soon will support vector.
 #' @param tls logical, see `?RSclient::RS.connect` for details.
@@ -34,6 +34,78 @@ rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.get
     rscl
 }
 
+#' @title Disconnect from Rserve instances
+#' @description A wrapper to `RS.close`.
+#' @param rscl lists of Rserve connections.
+rscl.close = function(rscl){
+    sapply(rscl, RS.close)
+}
+
+#' @title Eval on list of Rserve instances
+#' @description A wrapper to `RS.eval`.
+#' @param rscl lists of Rserve connections.
+#' @param x expression, can be quoted then use *lazy* arg. Can be list of quoted expression to run on all nodes in by expression batches on all R nodes.
+#' @param wait logical default TRUE passed to `RS.eval`.
+#' @param lazy logical default TRUE, when FALSE then *x* is quoted or a list of quoted.
+#' @param simplify logical, default TRUE, passed to underlying `sapply`.
+#' @return Logical matrix.
+rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, simplify = TRUE){
+    stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy))
+    expr = if(isTRUE(lazy)) substitute(x) else x
+    sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)
+}
+
+#' @title Collect results from Rserve connection list
+#' @param rscl list of connections to R nodes
+#' @param try logical default TRUE, will wrap collection into `try` to finish collection from all nodes instead of aborting on error.
+#' @param simplify logical, default TRUE, passed to underlying `sapply`.
+#' @return Results from `try` `RS.collect` from each node, simplified if possible.
+rscl.collect = function(rscl = getOption("bigdatatable.rscl"), try = TRUE, simplify = TRUE){
+    if(try) sapply(rscl, function(rsc) base::try(RS.collect(rsc), silent=TRUE), simplify = simplify) else sapply(rscl, RS.collect, simplify = simplify)
+}
+
+#' @title `RS.assign` for list of Rserve connections
+#' @description Wrapper on `RS.assign` for list of Rserve connections.
+#' @param rscl, lists of Rserve connections.
+#' @param name character variable of name to be used in each node for new object.
+#' @param value object to be assigned to each node.
+#' @param wait logical default TRUE passed to `RS.eval`.
+#' @param simplify logical, default TRUE, passed to underlying `sapply`.
+#' @return Results from `RS.assign` in `sapply`.
+rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE, simplify = TRUE){
+    sapply(rscl, function(rsc) RS.assign(rsc = rsc, name = name, value = value, wait = wait), simplify = simplify)
+}
+
+# rscl wrappers ----------------------------------------------------------------
+
+#' @title Check if list stores Rserve connections
+#' @param x a list
+#' @param silent logical default TRUE, if FALSE then error are raised if list is not Rserve connections list.
+#' @return TRUE, FALSE or raise error if `silent=FALSE`.
+is.rscl = function(x, silent=TRUE){
+    if(silent) return(is.list(x) && length(x) && all(sapply(x, inherits, "RserveConnection")))
+    if(!is.list(x)) stop(sprintf("Rserve connection list must be of type list."))
+    if(!length(x)) stop(sprintf("Rserve connection list cannot have 0 length."))
+    if(!all(sapply(x, inherits, "RserveConnection"))) stop(sprintf("Rserve connection list must store only 'RserveConnection' class objects."))
+    return(TRUE)
+}
+
+#' @title `ls` on every node
+#' @param rscl list of connections to R nodes
+#' @param simplify logical default TRUE passed to `sapply`.
+#' @return `ls()` of `.GlobalEnv` from each node.
+rscl.ls = function(rscl = getOption("bigdatatable.rscl"), simplify = TRUE){
+    rscl.eval(rscl, ls(envir = .GlobalEnv), simplify = simplify)
+}
+
+#' @title `ls.str` on every node
+#' @param rscl list of connections to R nodes
+#' @return Prints of `ls.str` on all nodes as side effect
+rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")){
+    prntl = rscl.eval(rscl, capture.output(print(ls.str(envir = .GlobalEnv))), simplify = FALSE)
+    invisible(lapply(seq_along(prntl), function(i) cat(c(sprintf("\n# Rserve node %s ----", names(prntl)[i]), prntl[[i]]), sep = "\n")))
+}
+
 #' @title Require packages in list of Rserve instances
 #' @description A wrapper to `RS.eval`.
 #' @param rscl, lists of Rserve connections.
@@ -53,65 +125,4 @@ rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly 
     r = sapply(expr_list, function(expr) rscl.eval(rscl, expr, lazy = FALSE))
     if(!quietly && !all(r)) warning("Some nodes failed to load, check logical matrix returned.")
     r
-}
-
-#' @title Eval on list of Rserve instances
-#' @description A wrapper to `RS.eval`.
-#' @param rscl, lists of Rserve connections.
-#' @param x expression, can be quoted then use *lazy* arg. Can be list of quoted expression to run on all nodes in by expression batches on all R nodes.
-#' @param wait logical default TRUE passed to `RS.eval`.
-#' @param lazy logical default TRUE, when FALSE then *x* is quoted or a list of quoted.
-#' @param simplify logical, default TRUE, passed to underlying `sapply`.
-#' @return Logical matrix.
-rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, simplify = TRUE){
-    stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy))
-    expr = if(isTRUE(lazy)) substitute(x) else x
-    sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)
-}
-
-#' @title `RS.assign` for list of Rserve connections
-#' @description Wrapper on `RS.assign` for list of Rserve connections.
-#' @param rscl, lists of Rserve connections.
-#' @param name character variable of name to be used in each node for new object.
-#' @param value object to be assigned to each node.
-#' @param wait logical default TRUE passed to `RS.eval`.
-#' @param simplify logical, default TRUE, passed to underlying `sapply`.
-#' @return Results from `RS.assign` in `sapply`.
-rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE, simplify = TRUE){
-    sapply(rscl, function(rsc) RS.assign(rsc = rsc, name = name, value = value, wait = wait), simplify = simplify)
-}
-
-#' @title Check if list stores Rserve connections
-#' @param x a list
-#' @param silent logical default TRUE, if FALSE then error are raised if list is not Rserve connections list.
-#' @return TRUE, FALSE or raise error if `silent=FALSE`.
-is.rscl = function(x, silent=TRUE){
-    if(silent) return(is.list(x) && length(x) && all(sapply(x, inherits, "RserveConnection")))
-    if(!is.list(x)) stop(sprintf("Rserve connection list must be of type list."))
-    if(!length(x)) stop(sprintf("Rserve connection list cannot have 0 length."))
-    if(!all(sapply(x, inherits, "RserveConnection"))) stop(sprintf("Rserve connection list must store only 'RserveConnection' class objects."))
-    return(TRUE)
-}
-
-#' @title Force collect results to unlock error
-#' @param rscl list of connections to R nodes
-#' @return Results from `try` `RS.collect` from each node, simplified if possible.
-rscl.clean = function(rscl = getOption("bigdatatable.rscl")){
-    invisible(sapply(rscl, function(rsc) try(RS.collect(rsc), silent=TRUE)))
-}
-
-#' @title `ls` on every node
-#' @param rscl list of connections to R nodes
-#' @param simplify logical default TRUE passed to `sapply`.
-#' @return `ls()` of `.GlobalEnv` from each node.
-rscl.ls = function(rscl = getOption("bigdatatable.rscl"), simplify = TRUE){
-    rscl.eval(rscl, ls(envir = .GlobalEnv), simplify = simplify)
-}
-
-#' @title `ls.str` on every node
-#' @param rscl list of connections to R nodes
-#' @return Prints of `ls.str` on all nodes as side effect
-rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")){
-    prntl = rscl.eval(rscl, capture.output(print(ls.str(envir = .GlobalEnv))), simplify = FALSE)
-    invisible(lapply(seq_along(prntl), function(i) cat(c(sprintf("\n# Rserve node %s ----", names(prntl)[i]), prntl[[i]]), sep = "\n")))
 }

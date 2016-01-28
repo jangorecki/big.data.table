@@ -2,24 +2,22 @@ Distributed parallel computing on data.table.
 
 # Installation
 
-Below commands will install latest big.data.table release.  
+Below commands will install latest big.data.table with its dependencies.  
 
 ```r
 install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
 install.packages("data.table", repos = "https://cran.rstudio.com")
-install.packages("big.data.table", repos = "https://jangorecki.github.io/big.data.table")
+install.packages("big.data.table", repos = "https://jangorecki.gitlab.io/big.data.table")
 ```
-
-To use development version install from [big.data.table](https://gitlab.com/jangorecki/big.data.table) repo.  
 
 # Starting nodes
 
 Nodes are started as processes working in the background as services.  
-You can use docker image based on Ubuntu 14.04 configured for `big.data.table` with postgres connection support. That still requires you to have a postgres instance - those are easy to start from docker too, see []().  
+You can use docker image based on Ubuntu 14.04 configured for `big.data.table` with postgres drivers preinstalled. That still requires you to have a postgres instance - those are easy to start from docker too, see [postgres in docker hub](https://hub.docker.com/r/library/postgres/).  
 
 ## Run nodes as docker services
 
-Docker image details: [jangorecki/r-data.table](https://hub.docker.com/r/jangorecki/r-data.table)
+Docker image details: [jangorecki/r-data.table-pg](https://hub.docker.com/r/jangorecki/r-data.table-pg)
 
 ```sh
 docker run -d -h rnode11 -p 33311:6311 --name=rnode11 jangorecki/r-data.table-pg
@@ -32,7 +30,6 @@ docker run -d -h rnode14 -p 33314:6311 --name=rnode14 jangorecki/r-data.table-pg
 
 ```r
 library(Rserve)
-library(RSclient)
 
 port = 33311:33314
 # start cluster
@@ -43,19 +40,75 @@ invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = 
 
 You should have nodes already started.
 
+## Connect to R nodes
+
+Connect to R nodes.  
+
 ```r
-library(Rserve)
 library(RSclient)
 library(data.table)
 library(big.data.table)
 
 port = 33311:33314
-# wrapper to lapply on RS.connect with recycling
-rscl = rscl.connect(port, host="172.17.0.1", pkgs = "data.table")
-# print objects in working directory of each node
-lapply(rscl, RS.eval, ls())
+# wrapper to sapply on RS.connect with recycling, auto require pkgs
+rscl = rscl.connect(port, pkgs = "data.table")
 
-# populate source data on nodes from function
+# R version on computing nodes using `RSclient::RS.eval` and `sapply`
+sapply(rscl, RS.eval, R.version.string)
+```
+
+## Using rscl.* wrappers
+
+`rscl.*` function are kind of intermediate step on which whole `big.data.table` package is built uppon. They makes some of the `RSclient::RS.*` functions vectorized, allowing to process a list of connections to R nodes.  
+It can be effectively utilized for batch access/processing any data spread across R nodes.  
+`RS.eval` allows to send expression and later collect results with `RS.collect` which allows for parallel processing.  
+
+```r
+rscl.eval(rscl, ls())
+rscl.ls(rscl)
+
+# populate data on R node site
+qdf = quote({
+    x <- data.frame(a = sample(letters,100,TRUE), b = rnorm(100))
+    TRUE # to avoid collection of `<-` call
+})
+rscl.eval(rscl, qdf, lazy = FALSE)
+
+rscl.ls(rscl)
+rscl.ls.str(rscl)
+
+# sum by group
+df.r = rscl.eval(rscl, aggregate(b ~ a, x, sum), simplify = FALSE)
+rbindlist(df.r)[, .(b = sum(b)), a]
+
+# using data.table
+rscl.require(rscl, "data.table")
+rscl.eval(rscl, is.data.table(setDT(x))) # is.data.table to avoid collection
+dt.r = rscl.eval(rscl, x[, .(b = sum(b)), a], simplify = FALSE)
+rbindlist(dt.r)[, .(b = sum(b)),, a]
+
+# query parallely
+rscl.eval(rscl, x[, .(b = sum(b)), a], wait = FALSE)
+dt.r = rscl.collect(rscl, simplify = FALSE)
+rbindlist(dt.r)[, .(b = sum(b)), a]
+
+# sequential/parallel sleep
+system.time(rscl.eval(rscl, Sys.sleep(1)))
+system.time({
+    rscl.eval(rscl, Sys.sleep(1), wait = FALSE)
+    rscl.collect(rscl)
+})
+```
+
+## Using big.data.table
+
+`big.data.table` class stores `rscl` attribute having list of connections to R nodes always on hand. It catches `[.big.data.table` calls and forward them to R nodes and execute as `[.data.table` calls on chunks of data.  
+I has some useful features like auto collection from parallel processing, row bind results from nodes, exception handling, logging and metadata collection.  
+
+### Ways to create big.data.table
+
+```r
+# populate source data on nodes from a function
 f = function() CJ(1:1e3,1:5e3) # 5M rows
 bdt = as.big.data.table(f, rscl = rscl)
 print(bdt)
@@ -95,7 +148,7 @@ print(bdt)
 str(bdt)
 ```
 
-## Compute on big.data.table
+### Query big.data.table
 
 ```r
 port = 33311:33314
@@ -119,7 +172,7 @@ bdt[, .(value = sum(value)), .(year, high)]
 options(op)
 ```
 
-## Features of big.data.table
+### Features of big.data.table
 
 ```r
 names(bdt)
@@ -171,18 +224,19 @@ r[, .(value = sum(value)), .(year, normal2)]
 r = as.data.table(bdt)
 r[, .N, year]
 rm(r, dt)
-
-# disconnect
-sapply(rscl, RS.close)
 ```
 
-## Closing nodes
+## Disconnect nodes
+
+```r
+rscl.close(rscl)
+```
 
 ### Shutdown nodes started from R
 
 ```r
 port = 33311:33314
-l = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port), error = function(e) e, warning = function(w) w))
+l = lapply(setNames(nm = port), function(port) tryCatch(RSconnect(port = port), error = function(e) e, warning = function(w) w))
 invisible(lapply(l, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
 ```
 

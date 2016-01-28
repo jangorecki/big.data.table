@@ -7,7 +7,7 @@ rscl.eval(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE,
   lazy = TRUE, simplify = TRUE)
 }
 \arguments{
-\item{rscl,}{lists of Rserve connections.}
+\item{rscl}{lists of Rserve connections.}
 
 \item{x}{expression, can be quoted then use *lazy* arg. Can be list of quoted expression to run on all nodes in by expression batches on all R nodes.}
 

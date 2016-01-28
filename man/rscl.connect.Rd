@@ -24,6 +24,6 @@ rscl.connect(port = Sys.getenv("RSERVE_PORT", "6311"),
 List of active connections to Rserve nodes.
 }
 \description{
-A wrapper to `RS.connect` function using `lapply` over recycled input arguments. It also requires data.table package.
+A wrapper to `RS.connect` function using `sapply` over recycled input arguments. It also requires data.table package.
 }
 
