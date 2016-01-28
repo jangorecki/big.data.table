@@ -59,9 +59,15 @@ rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy
 #' @param rscl list of connections to R nodes
 #' @param try logical default TRUE, will wrap collection into `try` to finish collection from all nodes instead of aborting on error.
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
+#' @param timeout numeric passed to `RS.collect`.
+#' @param detail logical passed to `RS.collect`.
 #' @return Results from `try` `RS.collect` from each node, simplified if possible.
-rscl.collect = function(rscl = getOption("bigdatatable.rscl"), try = TRUE, simplify = TRUE){
-    if(try) sapply(rscl, function(rsc) base::try(RS.collect(rsc), silent=TRUE), simplify = simplify) else sapply(rscl, RS.collect, simplify = simplify)
+rscl.collect = function(rscl = getOption("bigdatatable.rscl"), try = TRUE, simplify = TRUE, timeout = Inf, detail = FALSE){
+    if(try){
+        sapply(rscl, function(rsc) base::try(RS.collect(rsc, timeout = timeout, detail = detail), silent=TRUE), simplify = simplify)
+    } else {
+        sapply(rscl, RS.collect, timeout = timeout, detail = detail, simplify = simplify)
+    }
 }
 
 #' @title `RS.assign` for list of Rserve connections
