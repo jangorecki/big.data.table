@@ -63,3 +63,6 @@ stopifnot(
     rscl.eval(rscl, quote({y <- data.table(iris); TRUE}), lazy = FALSE),
     length(capture.output(rscl.ls.str(rscl))) == 56L
 )
+
+# disconnect
+rscl.close(rscl)

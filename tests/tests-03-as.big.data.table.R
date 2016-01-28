@@ -115,4 +115,4 @@ stopifnot(
 r = sapply(attr(bdt,"rscl"), RS.eval, rm(list=ls()))
 
 # disconnect
-sapply(rscl, RS.close)
+rscl.close(rscl)
