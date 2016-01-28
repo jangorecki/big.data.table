@@ -37,10 +37,6 @@ stopifnot(all.equal(
     setNames(rep(list(character(0)),length(host)), host)
 ))
 
-# connect env vars ----
-
-#Sys.setenv()
-
 # require ----
 
 # single package require
@@ -56,12 +52,12 @@ stopifnot(!rscl.require(rscl, c("asdasdasdasd","asdasdasdasd2")))
 
 stopifnot(
     rscl.eval(rscl, {x <- data.table(iris); TRUE}, lazy = TRUE),
-    length(capture.output(rscl.ls.str(rscl))) == 32L
+    length(capture.output(rscl.ls.str(rscl))) == 28L
 )
 
 stopifnot(
     rscl.eval(rscl, quote({y <- data.table(iris); TRUE}), lazy = FALSE),
-    length(capture.output(rscl.ls.str(rscl))) == 56L
+    length(capture.output(rscl.ls.str(rscl))) == 52L
 )
 
 # disconnect

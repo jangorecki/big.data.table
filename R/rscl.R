@@ -57,12 +57,12 @@ rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy
 
 #' @title Collect results from Rserve connection list
 #' @param rscl list of connections to R nodes
-#' @param try logical default TRUE, will wrap collection into `try` to finish collection from all nodes instead of aborting on error.
-#' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @param timeout numeric passed to `RS.collect`.
 #' @param detail logical passed to `RS.collect`.
+#' @param try logical default TRUE, will wrap collection into `try` to finish collection from all nodes instead of aborting on error.
+#' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @return Results from `try` `RS.collect` from each node, simplified if possible.
-rscl.collect = function(rscl = getOption("bigdatatable.rscl"), try = TRUE, simplify = TRUE, timeout = Inf, detail = FALSE){
+rscl.collect = function(rscl = getOption("bigdatatable.rscl"), timeout = Inf, detail = FALSE, try = TRUE, simplify = TRUE){
     if(try){
         sapply(rscl, function(rsc) base::try(RS.collect(rsc, timeout = timeout, detail = detail), silent=TRUE), simplify = simplify)
     } else {
@@ -109,7 +109,10 @@ rscl.ls = function(rscl = getOption("bigdatatable.rscl"), simplify = TRUE){
 #' @return Prints of `ls.str` on all nodes as side effect
 rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")){
     prntl = rscl.eval(rscl, capture.output(print(ls.str(envir = .GlobalEnv))), simplify = FALSE)
-    invisible(lapply(seq_along(prntl), function(i) cat(c(sprintf("\n# Rserve node %s ----", names(prntl)[i]), prntl[[i]]), sep = "\n")))
+    nm = names(prntl)
+    if(is.null(nm)) nm = seq_along(prntl)
+    prntl = lapply(seq_along(prntl), function(i) c(sprintf("# Rserve node %s ----", nm[i]), prntl[[i]]))
+    cat(unlist(prntl), sep = "\n")
 }
 
 #' @title Require packages in list of Rserve instances
@@ -120,7 +123,7 @@ rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")){
 #' @return Logical matrix.
 rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly = TRUE){
     stopifnot(is.rscl(rscl), is.character(package), length(package) > 0L, is.logical(quietly))
-    # workaround check warning for use of "require"
+    # workaround for CHECK warning when use "require" directly
     require_call = function(package, quietly){
         substitute(
             as.logical(suppressPackageStartupMessages(req.call)), 

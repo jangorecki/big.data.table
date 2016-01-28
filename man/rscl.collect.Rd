@@ -3,19 +3,19 @@
 \alias{rscl.collect}
 \title{Collect results from Rserve connection list}
 \usage{
-rscl.collect(rscl = getOption("bigdatatable.rscl"), try = TRUE,
-  simplify = TRUE, timeout = Inf, detail = FALSE)
+rscl.collect(rscl = getOption("bigdatatable.rscl"), timeout = Inf,
+  detail = FALSE, try = TRUE, simplify = TRUE)
 }
 \arguments{
 \item{rscl}{list of connections to R nodes}
 
-\item{try}{logical default TRUE, will wrap collection into `try` to finish collection from all nodes instead of aborting on error.}
-
-\item{simplify}{logical, default TRUE, passed to underlying `sapply`.}
-
 \item{timeout}{numeric passed to `RS.collect`.}
 
 \item{detail}{logical passed to `RS.collect`.}
+
+\item{try}{logical default TRUE, will wrap collection into `try` to finish collection from all nodes instead of aborting on error.}
+
+\item{simplify}{logical, default TRUE, passed to underlying `sapply`.}
 }
 \value{
 Results from `try` `RS.collect` from each node, simplified if possible.
