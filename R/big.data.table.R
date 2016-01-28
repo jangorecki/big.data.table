@@ -68,7 +68,7 @@ str.big.data.table = function(object, unclass = FALSE, ...){
     var = attr(object, "var")
     rscl = attr(object, "rscl")
     if(unclass){
-        str(core.data.table(object, var))
+        str(core.data.table(object))
         return(invisible())
     }
     qdim = substitute(dim(.x), list(.x = as.name(var)))
@@ -77,7 +77,7 @@ str.big.data.table = function(object, unclass = FALSE, ...){
     ncols = unique(sapply(dims.nodes, `[[`, 2L))
     nnodes = length(dims.nodes)
     if(length(ncols)!=1L) stop("Nodes differs in data.table structure in terms of columns number. Use: `bdt.eval(bdt, capture.output(str(x)))` to investigate.")
-    core.dt = core.data.table(object, var)
+    core.dt = core.data.table(object)
     dtcols = capture.output(str(core.dt, give.attr = FALSE))[-1L]
     prnt = character()
     prnt["header"] = sprintf("'big.data.table': %s obs. of %s variable%s across %s node%s%s", sum(nrows), ncols, if(ncols!=1L) "s" else "", nnodes, if(nnodes!=1L) "s" else "", if(ncols > 0L) ":" else "")
@@ -120,11 +120,11 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
     if(!missing(send) && isTRUE(send)) expr = substitute({.expr; invisible(TRUE)}, list(.expr=expr))
     # execute
     if(!parallel){
-        x = lapply(rscl, RS.eval, expr, lazy = FALSE)
+        x = rscl.eval(rscl, expr, lazy = FALSE, simplify = FALSE)
     }
     if(parallel){
-        invisible(lapply(rscl, RS.eval, expr, wait = FALSE, lazy = FALSE))
-        x = lapply(rscl, RS.collect)
+        invisible(rscl.eval(rscl, expr, wait = FALSE, lazy = FALSE))
+        x = rscl.collect(rscl, simplify = FALSE)
     }
     # format results
     if(rbind && is.data.table(x[[1L]])){
@@ -252,12 +252,12 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     } else send = FALSE
     # bdt node eval
     if(!.log){
-        x = bdt.eval(x, expr = dtcall, lazy = FALSE, parallel = parallel, .log = .log)
+        x = bdt.eval(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
     }
     if(.log){
         # substitute to have a nice logr.expr field
         bdt.expr = substitute(
-            bdt.eval(x, expr = .expr, lazy = TRUE, parallel = .parallel, .log = .log),
+            bdt.eval(x, expr = .expr, lazy = TRUE, send = send, parallel = .parallel, .log = .log),
             list(.expr = dtcall, .send = send, .parallel = parallel, ..log = .log)
         )
         x = eval(substitute(
@@ -290,7 +290,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as *lapply*. When using *rbind* or *simplify* the returned list be can simplified.
 "[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
     # when `j` provided it return empty column from bdt to get a class of column
-    if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(core.data.table(x, attr(x, "var"))[[j]])
+    if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(core.data.table(x)[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
     rscl = attr(x, "rscl")
     if(missing(i)){
@@ -337,9 +337,12 @@ rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL
 
 #' @title Core of data.table from nodes
 #' @param x big.data.table
-#' @param var character scalar, variable name on remote node, usually 'x'.
 #' @return 0 rows data.table class object, rbind of each 0L subsets.
-core.data.table = function(x, var = "x"){
-    stopifnot(is.character(var), length(var)==1L)
-    bdt.eval(x, expr = call("[", as.name(var), 0L), lazy = FALSE)
+core.data.table = function(x){
+    stopifnot(is.big.data.table(x))
+    var = attr(x, "var")
+    rscl = attr(x, "rscl")
+    qcall = call("[", as.name(var), 0L)
+    r = rscl.eval(rscl, qcall, lazy = FALSE, simplify = FALSE)
+    rbindlist(r)
 }

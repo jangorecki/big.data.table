@@ -3,12 +3,10 @@
 \alias{core.data.table}
 \title{Core of data.table from nodes}
 \usage{
-core.data.table(x, var = "x")
+core.data.table(x)
 }
 \arguments{
 \item{x}{big.data.table}
-
-\item{var}{character scalar, variable name on remote node, usually 'x'.}
 }
 \value{
 0 rows data.table class object, rbind of each 0L subsets.
