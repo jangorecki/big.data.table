@@ -172,7 +172,7 @@ bdt[[expr = x[, lapply(.SD, sum), Species]]]
 # re-aggregate after rbind
 bdt[, lapply(.SD, sum), Species, outer.aggregate=TRUE]
 
-# having two big.data.tables and `[[` we can easily join then
+# having two big.data.tables and `[[` we can easily join within the scope of node
 bdt[[expr = y[x, on = "Species"]]]
 
 # size
