@@ -7,13 +7,13 @@ Below commands will install latest big.data.table with its dependencies.
 ```r
 install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
 install.packages("data.table", repos = "https://cran.rstudio.com")
-install.packages("big.data.table", repos = "https://jangorecki.gitlab.io/big.data.table")
+install.packages("big.data.table", repos = "http://jangorecki.gitlab.io/big.data.table")
 ```
 
 # Starting nodes
 
 Nodes are started as processes working in the background as services.  
-You can use docker image based on Ubuntu 14.04 configured for `big.data.table` with postgres drivers preinstalled. That still requires you to have a postgres instance - those are easy to start from docker too, see [postgres in docker hub](https://hub.docker.com/r/library/postgres/).  
+You can use docker image based on Ubuntu 14.04 configured for `big.data.table`.  
 
 ## Run nodes as docker services
 
@@ -79,7 +79,7 @@ rscl.ls.str(rscl)
 
 # sum by group
 df.r = rscl.eval(rscl, aggregate(b ~ a, x, sum), simplify = FALSE)
-rbindlist(df.r)[, .(b = sum(b)), a]
+rbindlist(df.r)[, .(b = sum(b)),, a]
 
 # using data.table
 rscl.require(rscl, "data.table")
@@ -90,7 +90,7 @@ rbindlist(dt.r)[, .(b = sum(b)),, a]
 # query parallely
 rscl.eval(rscl, x[, .(b = sum(b)), a], wait = FALSE)
 dt.r = rscl.collect(rscl, simplify = FALSE)
-rbindlist(dt.r)[, .(b = sum(b)), a]
+rbindlist(dt.r)[, .(b = sum(b)),, a]
 
 # sequential/parallel sleep
 system.time(rscl.eval(rscl, Sys.sleep(1)))
@@ -103,7 +103,7 @@ system.time({
 ## Using big.data.table
 
 `big.data.table` class stores `rscl` attribute having list of connections to R nodes always on hand. It catches `[.big.data.table` calls and forward them to R nodes and execute as `[.data.table` calls on chunks of data.  
-I has some useful features like auto collection from parallel processing, row bind results from nodes, exception handling, logging and metadata collection.  
+It has some useful features like auto collection from parallel processing, row bind results from nodes, exception handling, logging and metadata collection.  
 
 ### Ways to create big.data.table
 
@@ -112,48 +112,41 @@ I has some useful features like auto collection from parallel processing, row bi
 f = function() CJ(1:1e3,1:5e3) # 5M rows
 bdt = as.big.data.table(f, rscl = rscl)
 print(bdt)
+nrow(bdt)
 str(bdt)
 
-# populate csv data on nodes
-lapply(rscl, RS.eval, write.csv(iris, file = "data.csv", row.names = FALSE))
+# populate csv data on nodes from function
+rscl.eval(rscl, write.csv(iris, file = "data.csv", row.names = FALSE))
 # read from csv by function
 f = function(file = "data.csv") fread(input = file)
 bdt = as.big.data.table(f, rscl = rscl)
 print(bdt)
+nrow(bdt)
 str(bdt)
+rscl.ls.str(rscl)
 
 # clean up
-sapply(rscl, RS.eval, rm(x))
-rm(bdt)
-sapply(rscl, RS.eval, file.remove("data.csv"))
+rscl.eval(rscl, rm(x, f))
+rscl.eval(rscl, file.remove("data.csv"))
 
 # read data from call
 qcall = quote(data.table(iris))
 bdt = as.big.data.table(qcall, rscl = rscl)
-print(bdt)
 str(bdt)
-
-sapply(rscl, RS.eval, rm(x))
-rm(bdt)
 
 # from data.table created locally
 dt = data.table(iris)
 bdt = as.big.data.table(dt, rscl = rscl)
-print(bdt)
 str(bdt)
 
-# from list - data must be already in the node R session
+# from rscl - data already in R nodes `.GlobalEnv$x`
 bdt = as.big.data.table(x = rscl)
-print(bdt)
 str(bdt)
 ```
 
 ### Query big.data.table
 
 ```r
-port = 33311:33314
-rscl = rscl.connect(port, pkgs = "data.table")
-
 gen.data = function(n = 5e6, seed = 123, ...){
     set.seed(seed)
     data.table(year = sample(2011:2014, n, TRUE), high = sample(n*0.9, n, TRUE), normal = sample(n*0.1, n, TRUE), low = sample(letters, n, TRUE), value = rnorm(n))
@@ -161,38 +154,67 @@ gen.data = function(n = 5e6, seed = 123, ...){
 bdt = as.big.data.table(x = gen.data, rscl = rscl)
 str(bdt)
 
+# `[.big.data.table` will not aggregate results from nodes by default
 bdt[, .(value = sum(value))]
-bdt[, .(value = sum(value)), year]
-bdt[, .(value = sum(value)), .(year, low)]
-bdt[, .(value = sum(value)), .(year, normal)]
+bdt[, .(value = sum(value))][, .(value = sum(value))]
+bdt[, .(value = sum(value)), outer.aggregate = TRUE]
 
-# processing timing
-op = options("bigdatatable.verbose"=TRUE)
-bdt[, .(value = sum(value)), .(year, high)]
-options(op)
+bdt[, .(value = sum(value)), year, outer.aggregate = TRUE]
+bdt[, .(value = sum(value)), .(year, low), outer.aggregate = TRUE]
+bdt[, .(value = sum(value)), .(year, normal), outer.aggregate = TRUE]
+
+# use `outer.aggregate=TRUE` only when used columns are not renamed
+bdt[, .N, year, outer.aggregate = TRUE] # incorrect
+bdt[, .N, year]
+bdt[, .N, year][, sum(N), year] # correct
 ```
 
 ### Features of big.data.table
 
 ```r
-names(bdt)
+bdt = as.big.data.table(x = quote(as.data.table(iris)), rscl = rscl)
+
+# dynamic metadata
 dim(bdt)
 nrow(bdt)
 ncol(bdt)
-sapply(bdt, class)
-# bdt exposes 0 rows copy of distributed data.table
-sapply(bdt, length)
-# to get expected output
-l = lapply(rscl, RS.eval, sapply(x, length))
-Reduce("+", l)
-# or use conviniet wrapper
-l = bdt[[expr = sapply(x, length)]]
-Reduce("+", l)
-# or a one liner with chained data.table query
-bdt[[expr = as.data.table(lapply(x, length))]][, lapply(.SD, sum)]
+bdt[, .N]
+bdt[, .(.N)]
 
-# partitioning can be handled automatically
+# static metadata - to be addressed better way
+# col names
+RS.eval(rscl[[1L]], names(x))
+# col class
+RS.eval(rscl[[1L]], lapply(x, class))
 
+# `[.big.data.table` - `new.var`
+
+bdty = bdt[, mean(Petal.Width), Species, new.var = "y"]
+str(bdty)
+str(bdt)
+# can be multiple bdt pointing to same machine but different variable names
+rscl.ls(rscl)
+
+# `[[.big.data.table`
+
+bdt[[expr = nrow(x)]]
+
+rscl.eval(rscl, c(x=nrow(x), y=nrow(y)))
+bdt[[expr = c(x=nrow(x), y=nrow(y))]]
+bdty[[expr = c(x=nrow(x), y=nrow(y))]]
+
+# this query
+bdt[, lapply(.SD, mean), Species]
+# can be expressed using the following
+rscl.eval(rscl, x[, lapply(.SD, mean), Species], simplify = FALSE)
+bdt[[expr = x[, lapply(.SD, mean), Species]]]
+# so you can join datasets within the scope of R node
+bdt[[expr = y[x, on = "Species"]]]
+```
+
+### Partitioning big.data.table
+
+```r
 dt = gen.data(n=2e7)
 
 # no partitioning
@@ -212,18 +234,12 @@ print(r.part)
 bdt[[expr = sprintf("%.4f MB", object.size(x)/(1024^2))]]
 sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
 
-# [.big.data.table - [.data.table redirection
-
-# this will not work as data to aggregate has been renamed
-bdt[, .(value = sum(value)), .(year, normal2 = normal)]
-# you can always workaround that directly using `bdt[[expr = ...]]`
-r = bdt[[expr = x[, .(value = sum(value)), .(year, normal2 = normal)]]]
-r[, .(value = sum(value)), .(year, normal2)]
-
 # fetch data from all nodes to local session
 r = as.data.table(bdt)
 r[, .N, year]
+
 rm(r, dt)
+rscl.ls(rscl)
 ```
 
 ## Disconnect nodes
@@ -248,6 +264,4 @@ docker stop rnode11 rnode12 rnode13 rnode14
 
 # Notes
 
-If you are stuck with uncollected results from nodes on Rserve connections you can force collect by `lapply(attr(bdt, "rscl"), function(x) try(RS.collect(x), silent=TRUE))`.  
-  
 Interesting finding by Szilard Pafka why you may not even need big.data.table package in future: [Big RAM is eating big data – Size of datasets used for analytics](http://datascience.la/big-ram-is-eating-big-data-size-of-datasets-used-for-analytics/)  
