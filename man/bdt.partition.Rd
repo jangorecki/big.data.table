@@ -3,24 +3,22 @@
 \alias{bdt.partition}
 \title{Controls partitioning}
 \usage{
-bdt.partition(x, partition.by, copy = FALSE, validate = TRUE,
-  parallel = TRUE)
+bdt.partition(x, partition.by, parallel = TRUE,
+  .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
 \item{x}{big.data.table.}
 
 \item{partition.by}{character.}
 
-\item{copy}{logical, default FALSE, or a data.table.}
-
-\item{validate}{if TRUE (default) it will validate that data are correctly partitioned.}
-
 \item{parallel,}{see `bdt.eval`.}
+
+\item{.log}{passed to `bdt.eval`.}
 }
 \value{
 big.data.table object.
 }
 \description{
-By default function will validate if data partitioning is enforced on the nodes. It can also rearrange data between nodes to update partitioning.
+By default function will validate if data partitioning is enforced on the nodes.
 }
 

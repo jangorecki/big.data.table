@@ -118,22 +118,18 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
     }
     # - [x] when `send` used it will append expression with invisible TRUE
     if(!missing(send) && isTRUE(send)) expr = substitute({.expr; invisible(TRUE)}, list(.expr=expr))
-    # - [ ] logging on master side
-    # if(!.log){
-    #     x = bdt.eval(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
-    # } else {
-    #     # substitute to have a nice logr.expr field
-    #     bdt.expr = substitute(
-    #         bdt.eval(x, expr = .expr, lazy = TRUE, send = .send, parallel = .parallel, .log = ..log),
-    #         list(.expr = dtcall, .send = send, .parallel = parallel, ..log = .log)
-    #     )
-    #     x = eval(substitute(
-    #         logR(.expr, silent = FALSE, .log = ..log),
-    #         list(.expr=bdt.expr, ..log=.log)
-    #     ))
-    # }
     # - [x] execute sequentially or parallely
-    x = rscl.eval(rscl, expr, lazy = FALSE, parallel = parallel, simplify = FALSE)
+    # - [x] logging on master side
+    x = if(!.log) rscl.eval(rscl, expr, lazy = FALSE, parallel = parallel, simplify = FALSE) else {
+        rscl.eval.expr = substitute(
+            rscl.eval(rscl, expr = .expr, lazy = FALSE, parallel = .parallel, simplify = FALSE),
+            list(.expr = expr, .parallel = parallel)
+        ) # substitute to log nice expressions
+        eval(substitute(
+            logR(.expr, silent = FALSE, .log = ..log),
+            list(.expr = rscl.eval.expr, ..log=.log)
+        ))
+    }
     # - [x] format results: rbind and simplify
     if(rbind && is.data.table(x[[1L]])){
         x = rbindlist(x)
@@ -149,18 +145,15 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
 #' @param name character variable name to which assign *value* in each node, for *x* data.table it should be equal to `x`.
 #' @param value an R object to save on node, if it is data.table then it will be partitioned into chunks, if not partition defined it will make equal rows chunks.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
-bdt.assign = function(x, name, value, parallel = TRUE){
+#' @param .log currently ignored.
+bdt.assign = function(x, name, value, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+    # TODO: add logging + tests
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
     partitions = if(is.big.data.table(x)) attr(x, "partitions") else data.table(NULL)
     # return begins here
-    if(!is.data.table(value)){
-        if(!parallel) rscl.assign(rscl, name = name, value = value) else {
-            invisible(rscl.assign(rscl, name = name, value = value, wait = FALSE))
-            rscl.collect(rscl, simplify = FALSE)
-        }
-    } else {
+    if(!is.data.table(value)) rscl.assign(rscl, name = name, value = value, parallel = parallel) else {
         rscid = seq_len(nnodes)
         # partition data by column or into equal rows chunks
         if(length(partitions)){
@@ -182,14 +175,14 @@ bdt.assign = function(x, name, value, parallel = TRUE){
 }
 
 #' @title Controls partitioning
-#' @description By default function will validate if data partitioning is enforced on the nodes. It can also rearrange data between nodes to update partitioning.
+#' @description By default function will validate if data partitioning is enforced on the nodes.
 #' @param x big.data.table.
 #' @param partition.by character.
-#' @param copy logical, default FALSE, or a data.table.
-#' @param validate if TRUE (default) it will validate that data are correctly partitioned.
 #' @param parallel, see `bdt.eval`.
+#' @param .log passed to `bdt.eval`.
 #' @return big.data.table object.
-bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, parallel = TRUE){
+bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+    # TODO: add logging + update `.log` arg doc + tests
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
@@ -199,32 +192,35 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
         partition.by = nondotnames(partitions)
         # update partitions
         qcall = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by=partition.by))
-        partitions = unique(bdt.eval(x, expr = qcall, lazy = FALSE, parallel=parallel), by = partition.by)
-        x = big.data.table(var = "x", rscl = rscl, partitions = partitions)
-    }
-    if(isTRUE(copy)){
-        lapply(seq_len(nnodes), function(i){
-            # copy 'x' to local session
-            cat(sprintf("big.data.table: processing %s of %s nodes.\n", i, nnodes))
-            # check if anything to copy
-            qcall = substitute(x[!partition.key], list(partition.key=partitions[i]))
-            tmp = bdt.eval(rscl[i], expr = qcall, lazy = FALSE, parallel=FALSE)
-            if(nrow(tmp)){
-                # send it to potentially multiple nodes
-                bdt.assign(x, name = "x", tmp, parallel = parallel)
-            }
-            TRUE
-        })
-    }
-    if(is.data.table(copy)){
-        bdt.assign(x, name = "x", copy, parallel = parallel)
-    }
-    if(validate){
-        qcall = quote(nrow(unique(x, by = partition.by))==1L)
-        r = bdt.eval(x, expr = qcall, lazy = FALSE, parallel = parallel)
-        if(!all(r)) stop(sprintf("big.data.table partitioning has been finished but validation of data didn't pass for %s nodes.", which(!r)))
-    }
-    return(x)
+        partitions = unique(bdt.eval(x, expr = qcall, lazy = FALSE, parallel=parallel, .log = .log), by = partition.by)
+        big.data.table(var = "x", rscl = rscl, partitions = partitions)
+    } else big.data.table(var = "x", rscl = rscl)
+    #' #' @description It can also rearrange data between nodes to update partitioning.
+    #' #' @param copy logical, default FALSE, or a data.table.
+    #' #' @param validate if TRUE (default) it will validate that data are correctly partitioned.
+    #' if(isTRUE(copy)){
+    #'     lapply(seq_len(nnodes), function(i){
+    #'         # copy 'x' to local session
+    #'         cat(sprintf("big.data.table: processing %s of %s nodes.\n", i, nnodes))
+    #'         # check if anything to copy
+    #'         qcall = substitute(x[!partition.key], list(partition.key=partitions[i]))
+    #'         tmp = bdt.eval(rscl[i], expr = qcall, lazy = FALSE, parallel=FALSE)
+    #'         if(nrow(tmp)){
+    #'             # send it to potentially multiple nodes
+    #'             bdt.assign(x, name = "x", tmp, parallel = parallel, .log = .log)
+    #'         }
+    #'         TRUE
+    #'     })
+    #' }
+    #' if(is.data.table(copy)){
+    #'     bdt.assign(x, name = "x", copy, parallel = parallel)
+    #' }
+    #' if(validate){
+    #'     qcall = quote(nrow(unique(x, by = partition.by))==1L)
+    #'     r = bdt.eval(x, expr = qcall, lazy = FALSE, parallel = parallel, .log = .log)
+    #'     if(!all(r)) stop(sprintf("big.data.table partitioning has been finished but validation of data didn't pass for %s nodes.", which(!r)))
+    #' }
+    # return(x)
 }
 
 # sub.bdt ----
@@ -243,35 +239,23 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     dtq = match.call(expand.dots = FALSE)$`...`
     rscl = attr(x, "rscl", exact = TRUE)
     var = attr(x, "var", exact = TRUE)
+    # - [x] build `[.data.table` call for R nodes
     dtcall = as.call(c(list(as.symbol("["), x = as.name(var)), dtq))
-    # allow copy results into new variable
+    # - [x] allow copy results into new variable
     if(!missing(new.var)){
         stopifnot(is.character(new.var), length(new.var)==1L)
         if(isTRUE(new.copy)) dtcall = substitute(copy(.dtcall), list(.dtcall = dtcall))
         dtcall = substitute(.var <- .expr, list(.var = as.name(new.var), .expr = dtcall))
         send = TRUE
     } else send = FALSE
-    # bdt node eval
-    if(!.log){
-        x = bdt.eval(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
-    }
-    if(.log){
-        # substitute to have a nice logr.expr field
-        bdt.expr = substitute(
-            bdt.eval(x, expr = .expr, lazy = TRUE, send = .send, parallel = .parallel, .log = ..log),
-            list(.expr = dtcall, .send = send, .parallel = parallel, ..log = .log)
-        )
-        x = eval(substitute(
-            logR(.expr, silent = FALSE, .log = ..log),
-            list(.expr=bdt.expr, ..log=.log)
-        ))
-    }
-    # potentially return new big.data.table
+    # - [x] redirect hard work to `bdt.eval`
+    x = bdt.eval(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
+    # - [x] when saving to new.var then new big.data.table will be returned
     if(!missing(new.var)){
         #warning("!missing(new.var) return new big.data.table instead of returninig data")
         return(big.data.table(var = new.var, rscl = rscl))
     }
-    # aggregate results from nodes
+    # - [x] aggregate results from nodes with `outer.aggregate` arg
     if(outer.aggregate) x = eval(dtcall)
     return(x)
 }
@@ -294,6 +278,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(core.data.table(x)[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
     rscl = attr(x, "rscl")
+    # - [x] allow to evaluate `expr` on subset of nodes
     if(missing(i)){
         all.nodes = TRUE
         i = seq_along(rscl)
@@ -301,20 +286,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
         stopifnot(is.numeric(i))
         all.nodes = FALSE
     }
-    if(!.log){
-        bdt.eval(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, .log = .log)
-    } else {
-        # substitute to have a nice logr.expr field
-        rscl.i = if(!all.nodes) call("[",as.name("rscl"), i) else as.name("rscl")
-        bdt.expr = substitute(
-            bdt.eval(.rscl, expr = .expr, lazy = TRUE, send = .send, simplify = .simplify, rbind = .rbind, parallel = .parallel, .log = ..log),
-            list(.rscl = rscl.i, .expr = expr, .send = send, .simplify = simplify, .rbind = rbind, .parallel = parallel, ..log = .log)
-        )
-        eval(substitute(
-            logR(.expr, silent = FALSE, .log = ..log),
-            list(.expr=bdt.expr, ..log=.log)
-        ))
-    }
+    bdt.eval(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, .log = .log)
 }
 
 # utils ----
