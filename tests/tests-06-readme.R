@@ -83,7 +83,7 @@ stopifnot(
     length(capture.output(str(bdt)))==6L
 )
 
-# populate csv data on nodes from function
+# populate csv data on nodes, then load using function
 rscl.eval(rscl, write.csv(iris, file = "data.csv", row.names = FALSE))
 stopifnot(all.equal(rscl.eval(rscl, file.exists("data.csv")), setNames(rep(TRUE, 4L), port)))
 # read from csv by function
@@ -103,7 +103,7 @@ rscl.eval(rscl, file.remove("data.csv"))
 stopifnot(all.equal(rscl.eval(rscl, file.exists("data.csv")), setNames(rep(FALSE, 4L), port)))
 
 # read data from call
-qcall = quote(data.table(iris))
+qcall = quote(as.data.table(iris))
 bdt = as.big.data.table(qcall, rscl = rscl)
 stopifnot(
     nrow(bdt)==600L,
@@ -111,7 +111,7 @@ stopifnot(
 )
 
 # from data.table created locally
-dt = data.table(iris)
+dt = as.data.table(iris)
 bdt = as.big.data.table(dt, rscl = rscl)
 stopifnot(
     nrow(bdt)==150L,

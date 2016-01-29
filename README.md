@@ -103,9 +103,12 @@ system.time(rscl.eval(rscl, Sys.sleep(1), parallel = TRUE))
 ## Using big.data.table
 
 `big.data.table` class stores `rscl` attribute having list of connections to R nodes always on hand. It catches `[.big.data.table` calls and forward them to R nodes and execute as `[.data.table` calls on chunks of data.  
-It has some useful features like auto collection from parallel processing, row bind results from nodes, exception handling, logging and metadata collection.  
+It has some useful features like auto collection from parallel processing, row bind results from nodes, exception handling, optionally logging and metadata collection using [logR](https://github.com/jangorecki/logR).  
 
 ### Ways to create big.data.table
+
+There are multiple ways to load data to nodes.  
+Use `function` or `call` methods to load data remotely or `data.table` method to send data to nodes from local R session.  
 
 ```r
 # populate source data on nodes from a function
@@ -115,7 +118,7 @@ print(bdt)
 nrow(bdt)
 str(bdt)
 
-# populate csv data on nodes from function
+# populate csv data on nodes, then load using function
 rscl.eval(rscl, write.csv(iris, file = "data.csv", row.names = FALSE))
 # read from csv by function
 f = function(file = "data.csv") fread(input = file)
@@ -130,13 +133,13 @@ rscl.eval(rscl, rm(x, f))
 rscl.eval(rscl, file.remove("data.csv"))
 
 # read data from call
-qcall = quote(data.table(iris))
+qcall = quote(as.data.table(iris))
 bdt = as.big.data.table(qcall, rscl = rscl)
 nrow(bdt)
 str(bdt)
 
 # from data.table created locally
-dt = data.table(iris)
+dt = as.data.table(iris)
 bdt = as.big.data.table(dt, rscl = rscl)
 nrow(bdt)
 str(bdt)
@@ -147,6 +150,8 @@ str(bdt)
 ```
 
 ### Query big.data.table
+
+Queries made with `[.big.data.table` will by default run in parallel. Results from nodes are row binded but not re-aggregated. Results are fetched to local R session (unless `new.var` is used) as single data.table so you can use regular `[.data.table` in the chain.  
 
 ```r
 gen.data = function(n = 5e6, seed = 123, ...){
@@ -172,6 +177,8 @@ bdt[, .N, year][, sum(N), year] # correct
 ```
 
 ### Features of big.data.table
+
+Some `big.data.table` attributes and `[[.big.data.table` for deeper flexibility.  
 
 ```r
 bdt = as.big.data.table(x = quote(as.data.table(iris)), rscl = rscl)
@@ -269,4 +276,4 @@ docker stop rnode11 rnode12 rnode13 rnode14
 
 # Notes
 
-Interesting finding by Szilard Pafka why you may not even need big.data.table package in future: [Big RAM is eating big data – Size of datasets used for analytics](http://datascience.la/big-ram-is-eating-big-data-size-of-datasets-used-for-analytics/)  
+Interesting finding by Szilard Pafka why you may not even need big.data.table package in future [Big RAM is eating big data – Size of datasets used for analytics](http://datascience.la/big-ram-is-eating-big-data-size-of-datasets-used-for-analytics/).  
