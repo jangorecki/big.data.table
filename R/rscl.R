@@ -56,7 +56,7 @@ rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy
     # returns
     if(parallel){
         invisible(rscl.eval(rscl, expr, wait = FALSE, lazy = FALSE))
-        rscl.collect(rscl, simplify = FALSE)
+        rscl.collect(rscl, simplify = simplify)
     } else {
         sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)
     }

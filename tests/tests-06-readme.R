@@ -43,7 +43,7 @@ dt.r = rscl.collect(rscl, simplify = FALSE)
 rbindlist(dt.r)[, .(b = sum(b)), a]
 
 # auto collect from parallel query
-dt.r = rscl.eval(rscl, x[, .(b = sum(b)), a], parallel = TRUE)
+dt.r = rscl.eval(rscl, x[, .(b = sum(b)), a], parallel = TRUE, simplify = FALSE)
 rbindlist(dt.r)[, .(b = sum(b)), a]
 
 # sequential/parallel sleep
