@@ -4,16 +4,18 @@
 \title{Eval on list of Rserve instances}
 \usage{
 rscl.eval(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE,
-  lazy = TRUE, simplify = TRUE)
+  lazy = TRUE, parallel = FALSE, simplify = TRUE)
 }
 \arguments{
 \item{rscl}{lists of Rserve connections.}
 
 \item{x}{expression, can be quoted then use *lazy* arg. Can be list of quoted expression to run on all nodes in by expression batches on all R nodes.}
 
-\item{wait}{logical default TRUE passed to `RS.eval`.}
+\item{wait}{logical default TRUE passed to `RS.eval`. If *parallel* arg is TRUE then this argument is ignored.}
 
 \item{lazy}{logical default TRUE, when FALSE then *x* is quoted or a list of quoted.}
+
+\item{parallel}{logical, default FALSE, when TRUE it will auto collect results}
 
 \item{simplify}{logical, default TRUE, passed to underlying `sapply`.}
 }

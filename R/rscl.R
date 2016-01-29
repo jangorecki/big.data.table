@@ -45,14 +45,21 @@ rscl.close = function(rscl){
 #' @description A wrapper to `RS.eval`.
 #' @param rscl lists of Rserve connections.
 #' @param x expression, can be quoted then use *lazy* arg. Can be list of quoted expression to run on all nodes in by expression batches on all R nodes.
-#' @param wait logical default TRUE passed to `RS.eval`.
+#' @param wait logical default TRUE passed to `RS.eval`. If *parallel* arg is TRUE then this argument is ignored.
 #' @param lazy logical default TRUE, when FALSE then *x* is quoted or a list of quoted.
+#' @param parallel logical, default FALSE, when TRUE it will auto collect results
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @return Logical matrix.
-rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, simplify = TRUE){
-    stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy))
+rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, parallel = FALSE, simplify = TRUE){
+    stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy), is.logical(parallel), is.logical(simplify))
     expr = if(isTRUE(lazy)) substitute(x) else x
-    sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)
+    # returns
+    if(parallel){
+        invisible(rscl.eval(rscl, expr, wait = FALSE, lazy = FALSE))
+        rscl.collect(rscl, simplify = FALSE)
+    } else {
+        sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)
+    }
 }
 
 #' @title Collect results from Rserve connection list

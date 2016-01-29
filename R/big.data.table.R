@@ -107,26 +107,34 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     if(isTRUE(lazy)) expr = substitute(expr)
-    # logging and error catching
+    # - [x] logging and error catching for R nodes
     if(!.log){
         if(isTRUE(silent)) expr = substitute(tryCatch(.expr, error = function(e) e, warning = function(w) w), list(.expr=expr))
-    }
-    if(.log){
+    } else {
         expr = substitute(
             logR(.expr, alert = .alert, silent = .silent, .log = ..log),
             list(.expr=expr, .alert=!silent, .silent=silent, ..log=.log)
         )
     }
+    # - [x] when `send` used it will append expression with invisible TRUE
     if(!missing(send) && isTRUE(send)) expr = substitute({.expr; invisible(TRUE)}, list(.expr=expr))
-    # execute
-    if(!parallel){
-        x = rscl.eval(rscl, expr, lazy = FALSE, simplify = FALSE)
-    }
-    if(parallel){
-        invisible(rscl.eval(rscl, expr, wait = FALSE, lazy = FALSE))
-        x = rscl.collect(rscl, simplify = FALSE)
-    }
-    # format results
+    # - [ ] logging on master side
+    # if(!.log){
+    #     x = bdt.eval(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
+    # } else {
+    #     # substitute to have a nice logr.expr field
+    #     bdt.expr = substitute(
+    #         bdt.eval(x, expr = .expr, lazy = TRUE, send = .send, parallel = .parallel, .log = ..log),
+    #         list(.expr = dtcall, .send = send, .parallel = parallel, ..log = .log)
+    #     )
+    #     x = eval(substitute(
+    #         logR(.expr, silent = FALSE, .log = ..log),
+    #         list(.expr=bdt.expr, ..log=.log)
+    #     ))
+    # }
+    # - [x] execute sequentially or parallely
+    x = rscl.eval(rscl, expr, lazy = FALSE, parallel = parallel, simplify = FALSE)
+    # - [x] format results: rbind and simplify
     if(rbind && is.data.table(x[[1L]])){
         x = rbindlist(x)
     } else if(simplify && length(x) && length(x[[1L]])==1 && is.atomic(x[[1L]])){
@@ -250,7 +258,7 @@ bdt.partition = function(x, partition.by, copy = FALSE, validate = TRUE, paralle
     if(.log){
         # substitute to have a nice logr.expr field
         bdt.expr = substitute(
-            bdt.eval(x, expr = .expr, lazy = TRUE, send = send, parallel = .parallel, .log = .log),
+            bdt.eval(x, expr = .expr, lazy = TRUE, send = .send, parallel = .parallel, .log = ..log),
             list(.expr = dtcall, .send = send, .parallel = parallel, ..log = .log)
         )
         x = eval(substitute(
