@@ -136,48 +136,41 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
 }
 
 #' @title big.data.table assign object
-#' @description Saves the object to nodes, handles partitioning.
+#' @description Saves the object to nodes, handles chunking/partitioning.
 #' @param x big.data.table.
 #' @param name character variable name to which assign *value* in each node, for *x* data.table it should be equal to `x`.
-#' @param value an R object to save on node, if it is data.table then it will be partitioned accroding to *x* partitions.
+#' @param value an R object to save on node, if it is data.table then it will be partitioned into chunks, if not partition defined it will make equal rows chunks.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 bdt.assign = function(x, name, value, parallel = TRUE){
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
-    #     if(is.data.table(value) && isTRUE(getOption("bigdatatable.verbose"))){
-    #         ts = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) microbenchmarkCore::get_nanotime() else proc.time()[[3L]]
-    #         cat(sprintf("big.data.table: assigning data.table to %s nodes %s.\n", nnodes, ifelse(isTRUE(parallel), "in parallel", "sequentially"), sep=""))
-    #     }
     partitions = if(is.big.data.table(x)) attr(x, "partitions") else data.table(NULL)
+    # return begins here
     if(!is.data.table(value)){
-        value = rep(value, nnodes)
+        if(!parallel) rscl.assign(rscl, name = name, value = value) else {
+            invisible(rscl.assign(rscl, name = name, value = value, wait = FALSE))
+            rscl.collect(rscl, simplify = FALSE)
+        }
+    } else {
         rscid = seq_len(nnodes)
-    }
-    if(is.data.table(value)){
-        rscid = seq_len(nnodes)
+        # partition data by column or into equal rows chunks
         if(length(partitions)){
+            # chunk data.table into partitions
             value = lapply(rscid, function(i){
                 if(i <= nrow(partitions)) value[partitions[i], nomatch = 0L, on = key(partitions)] else value[0L]
             })
-        }
-        if(!length(partitions)){
+        } else {
+            # equal chunks
             partition.map = if(nrow(value)) cut(seq_len(nrow(value)), min(nnodes, nrow(value)), labels = FALSE) else integer()
             value = lapply(rscid, function(i) value[partition.map==i])
         }
+        # execute sequantially or parallely
+        if(!parallel) lapply(rscid, function(i) RS.assign(rsc = rscl[[i]], name = name, value = value[[i]], wait = TRUE)) else {
+            invisible(lapply(rscid, function(i) RS.assign(rsc = rscl[[i]], name = name, value = value[[i]], wait = FALSE)))
+            rscl.collect(rscl, simplify = FALSE)
+        }
     }
-    if(!parallel){
-        x = lapply(rscid, function(i) RS.assign(rsc = rscl[[i]], name = name, value = value[[i]], wait = TRUE))
-    }
-    if(parallel){
-        invisible(lapply(rscid, function(i) RS.assign(rsc = rscl[[i]], name = name, value = value[[i]], wait = FALSE)))
-        x = lapply(rscl[rscid], RS.collect)
-    }
-    #     if(isTRUE(getOption("bigdatatable.verbose"))){
-    #         timing = if(requireNamespace("microbenchmarkCore", quietly = TRUE)) (microbenchmarkCore::get_nanotime() - ts) * 1e-9 else proc.time()[[3L]] - ts
-    #         cat(sprintf("big.data.table: data.table assigned to %s nodes in %.4f seconds.\n", nnodes, timing), sep="")
-    #     }
-    return(x)
 }
 
 #' @title Controls partitioning

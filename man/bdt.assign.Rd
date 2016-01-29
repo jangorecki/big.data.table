@@ -10,11 +10,11 @@ bdt.assign(x, name, value, parallel = TRUE)
 
 \item{name}{character variable name to which assign *value* in each node, for *x* data.table it should be equal to `x`.}
 
-\item{value}{an R object to save on node, if it is data.table then it will be partitioned accroding to *x* partitions.}
+\item{value}{an R object to save on node, if it is data.table then it will be partitioned into chunks, if not partition defined it will make equal rows chunks.}
 
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
 }
 \description{
-Saves the object to nodes, handles partitioning.
+Saves the object to nodes, handles chunking/partitioning.
 }
 
