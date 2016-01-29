@@ -10,16 +10,16 @@
 as.big.data.table(x, ...)
 
 \method{as.big.data.table}{function}(x, rscl, partition.by, partitions,
-  parallel = TRUE, ...)
+  parallel = TRUE, ..., .log = getOption("bigdatatable.log", FALSE))
 
 \method{as.big.data.table}{call}(x, rscl, partition.by, partitions,
-  parallel = TRUE, ...)
+  parallel = TRUE, ..., .log = getOption("bigdatatable.log", FALSE))
 
 \method{as.big.data.table}{list}(x, partition.by, partitions, parallel = TRUE,
-  ...)
+  ..., .log = getOption("bigdatatable.log", FALSE))
 
 \method{as.big.data.table}{data.table}(x, rscl, partition.by, partitions,
-  parallel = TRUE, ...)
+  parallel = TRUE, ..., .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
 \item{x}{object to cast into big.data.table, can be data.table, function, quoted call or a list.}
@@ -31,6 +31,8 @@ as.big.data.table(x, ...)
 \item{partitions}{data.table of unique combinations of values in *partition.by* columns.}
 
 \item{parallel}{logical, see `?bdt.eval`.}
+
+\item{.log}{logical if *TRUE* then logging will be done using logR to postgres db.}
 
 \item{\dots}{arguments passed to methods.}
 }

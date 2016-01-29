@@ -62,6 +62,26 @@ rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy
     }
 }
 
+#' @title `RS.assign` for list of Rserve connections
+#' @description Wrapper on `RS.assign` for list of Rserve connections.
+#' @param rscl, lists of Rserve connections.
+#' @param name character variable of name to be used in each node for new object.
+#' @param value object to be assigned to each node.
+#' @param wait logical default TRUE passed to `RS.eval`.
+#' @param parallel logical, default FALSE, when TRUE it will auto collect results
+#' @param simplify logical, default TRUE, passed to underlying `sapply`.
+#' @return Results from `RS.assign` in `sapply`.
+rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE, parallel = FALSE, simplify = TRUE){
+    stopifnot(is.list(rscl), is.character(name), is.logical(wait), is.logical(parallel), is.logical(simplify))
+    # returns
+    if(parallel){
+        invisible(sapply(rscl, RS.assign, name = name, value = value, wait = FALSE))
+        rscl.collect(rscl, simplify = simplify)
+    } else {
+        sapply(rscl, RS.assign, name = name, value = value, wait = wait, simplify = simplify)
+    }
+}
+
 #' @title Collect results from Rserve connection list
 #' @param rscl list of connections to R nodes
 #' @param timeout numeric passed to `RS.collect`.
@@ -75,18 +95,6 @@ rscl.collect = function(rscl = getOption("bigdatatable.rscl"), timeout = Inf, de
     } else {
         sapply(rscl, RS.collect, timeout = timeout, detail = detail, simplify = simplify)
     }
-}
-
-#' @title `RS.assign` for list of Rserve connections
-#' @description Wrapper on `RS.assign` for list of Rserve connections.
-#' @param rscl, lists of Rserve connections.
-#' @param name character variable of name to be used in each node for new object.
-#' @param value object to be assigned to each node.
-#' @param wait logical default TRUE passed to `RS.eval`.
-#' @param simplify logical, default TRUE, passed to underlying `sapply`.
-#' @return Results from `RS.assign` in `sapply`.
-rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE, simplify = TRUE){
-    sapply(rscl, function(rsc) RS.assign(rsc = rsc, name = name, value = value, wait = wait), simplify = simplify)
 }
 
 # rscl wrappers ----------------------------------------------------------------

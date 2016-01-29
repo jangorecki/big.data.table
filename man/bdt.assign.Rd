@@ -3,7 +3,8 @@
 \alias{bdt.assign}
 \title{big.data.table assign object}
 \usage{
-bdt.assign(x, name, value, parallel = TRUE)
+bdt.assign(x, name, value, parallel = TRUE,
+  .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
 \item{x}{big.data.table.}
@@ -13,6 +14,8 @@ bdt.assign(x, name, value, parallel = TRUE)
 \item{value}{an R object to save on node, if it is data.table then it will be partitioned into chunks, if not partition defined it will make equal rows chunks.}
 
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
+
+\item{.log}{currently ignored.}
 }
 \description{
 Saves the object to nodes, handles chunking/partitioning.

@@ -4,7 +4,7 @@
 \title{`RS.assign` for list of Rserve connections}
 \usage{
 rscl.assign(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE,
-  simplify = TRUE)
+  parallel = FALSE, simplify = TRUE)
 }
 \arguments{
 \item{rscl,}{lists of Rserve connections.}
@@ -14,6 +14,8 @@ rscl.assign(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE,
 \item{value}{object to be assigned to each node.}
 
 \item{wait}{logical default TRUE passed to `RS.eval`.}
+
+\item{parallel}{logical, default FALSE, when TRUE it will auto collect results}
 
 \item{simplify}{logical, default TRUE, passed to underlying `sapply`.}
 }
