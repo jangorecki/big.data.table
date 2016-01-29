@@ -97,6 +97,7 @@ system.time({
     rscl.eval(rscl, Sys.sleep(1), wait = FALSE)
     rscl.collect(rscl)
 })
+system.time(rscl.eval(rscl, Sys.sleep(1), parallel = TRUE))
 ```
 
 ## Using big.data.table
@@ -131,11 +132,13 @@ rscl.eval(rscl, file.remove("data.csv"))
 # read data from call
 qcall = quote(data.table(iris))
 bdt = as.big.data.table(qcall, rscl = rscl)
+nrow(bdt)
 str(bdt)
 
 # from data.table created locally
 dt = data.table(iris)
 bdt = as.big.data.table(dt, rscl = rscl)
+nrow(bdt)
 str(bdt)
 
 # from rscl - data already in R nodes `.GlobalEnv$x`

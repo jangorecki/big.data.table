@@ -1,6 +1,6 @@
 
 ## Connect to R nodes ----
-# TO DO: add tests
+
 library(RSclient)
 library(data.table)
 library(big.data.table)
@@ -8,87 +8,119 @@ library(big.data.table)
 port = 33311:33314
 # wrapper to sapply on RS.connect with recycling, auto require pkgs
 rscl = rscl.connect(port, pkgs = "data.table")
+stopifnot(is.rscl(rscl))
 
 # R version on computing nodes using `RSclient::RS.eval` and `sapply`
-sapply(rscl, RS.eval, R.version.string)
+r = sapply(rscl, RS.eval, R.version.string)
+stopifnot(is.character(r), length(r)==4L)
 
-## Using rscl.* wrappers
+## Using rscl.* wrappers ----
 
-rscl.eval(rscl, ls())
-rscl.ls(rscl)
+r1 = rscl.eval(rscl, ls())
+r2 = rscl.ls(rscl)
+stopifnot(all.equal(r1, r2), sapply(r1, length)==0L)
 
 # populate data on R node site
 qdf = quote({
     x <- data.frame(a = sample(letters,100,TRUE), b = rnorm(100))
     TRUE # to avoid collection of `<-` call
 })
-rscl.eval(rscl, qdf, lazy = FALSE)
+r = rscl.eval(rscl, qdf, lazy = FALSE)
+stopifnot(r, length(r)==4L)
 
-rscl.ls(rscl)
-rscl.ls.str(rscl)
+r = rscl.ls(rscl)
+stopifnot(all.equal(r, setNames(rep("x",4L), port)))
+r = capture.output(rscl.ls.str(rscl))
+stopifnot(length(r)==16L)
 
 # sum by group
 df.r = rscl.eval(rscl, aggregate(b ~ a, x, sum), simplify = FALSE)
-rbindlist(df.r)[, .(b = sum(b)), a]
+r1 = rbindlist(df.r)[, .(b = sum(b)), a]
 
 # using data.table
 rscl.require(rscl, "data.table")
 rscl.eval(rscl, is.data.table(setDT(x))) # is.data.table to avoid collection
 dt.r = rscl.eval(rscl, x[, .(b = sum(b)), a], simplify = FALSE)
-rbindlist(dt.r)[, .(b = sum(b)),, a]
+r2 = rbindlist(dt.r)[, .(b = sum(b)),, a]
 
 # query parallely
 invisible(rscl.eval(rscl, x[, .(b = sum(b)), a], wait = FALSE))
 dt.r = rscl.collect(rscl, simplify = FALSE)
-rbindlist(dt.r)[, .(b = sum(b)), a]
+r3 = rbindlist(dt.r)[, .(b = sum(b)),, a]
 
 # auto collect from parallel query
 dt.r = rscl.eval(rscl, x[, .(b = sum(b)), a], parallel = TRUE, simplify = FALSE)
-rbindlist(dt.r)[, .(b = sum(b)), a]
+r4 = rbindlist(dt.r)[, .(b = sum(b)),, a]
+
+stopifnot(
+    nrow(r1)==26L,
+    all.equal(r1, r2),
+    all.equal(r2, r3),
+    all.equal(r3, r4)
+)
 
 # sequential/parallel sleep
-system.time(rscl.eval(rscl, Sys.sleep(1)))
-system.time({
+r1 = system.time(rscl.eval(rscl, Sys.sleep(1)))
+r2 = system.time({
     rscl.eval(rscl, Sys.sleep(1), wait = FALSE)
     rscl.collect(rscl)
 })
+r3 = system.time(rscl.eval(rscl, Sys.sleep(1), parallel = TRUE))
+stopifnot(
+    r1[["elapsed"]] > 3.95,
+    r2[["elapsed"]] < 1.05,
+    r3[["elapsed"]] < 1.05
+)
 
 ### Ways to create big.data.table ----
-# TO DO: add tests
+
 # populate source data on nodes from a function
-f = function() CJ(1:1e3,1:5e3) # 5M rows
+f = function() CJ(1:1e2,1:5e2) # 1e2 smaller dataset in tests
 bdt = as.big.data.table(f, rscl = rscl)
-print(bdt)
-nrow(bdt)
-str(bdt)
+stopifnot(
+    length(capture.output(print(bdt)))==12L,
+    nrow(bdt)==200000L,
+    length(capture.output(str(bdt)))==6L
+)
 
 # populate csv data on nodes from function
 rscl.eval(rscl, write.csv(iris, file = "data.csv", row.names = FALSE))
+stopifnot(all.equal(rscl.eval(rscl, file.exists("data.csv")), setNames(rep(TRUE, 4L), port)))
 # read from csv by function
 f = function(file = "data.csv") fread(input = file)
 bdt = as.big.data.table(f, rscl = rscl)
-print(bdt)
-nrow(bdt)
-str(bdt)
-rscl.ls.str(rscl)
+stopifnot(
+    length(capture.output(print(bdt)))==12L,
+    nrow(bdt)==600L,
+    length(capture.output(str(bdt)))==9L,
+    length(capture.output(rscl.ls.str(rscl)))==32L
+)
 
 # clean up
 rscl.eval(rscl, rm(x, f))
+stopifnot(all.equal(capture.output(rscl.ls.str(rscl)), sprintf("# Rserve node %s ----", port)))
 rscl.eval(rscl, file.remove("data.csv"))
+stopifnot(all.equal(rscl.eval(rscl, file.exists("data.csv")), setNames(rep(FALSE, 4L), port)))
 
 # read data from call
 qcall = quote(data.table(iris))
 bdt = as.big.data.table(qcall, rscl = rscl)
-str(bdt)
+stopifnot(
+    nrow(bdt)==600L,
+    length(capture.output(str(bdt)))==9L
+)
 
 # from data.table created locally
 dt = data.table(iris)
 bdt = as.big.data.table(dt, rscl = rscl)
-str(bdt)
+stopifnot(
+    nrow(bdt)==150L,
+    length(capture.output(str(bdt)))==9L
+)
 
 # from rscl - data already in R nodes `.GlobalEnv$x`
 bdt = as.big.data.table(x = rscl)
-str(bdt)
+stopifnot(length(capture.output(str(bdt)))==9L)
 
 ### Query big.data.table ----
 
@@ -97,22 +129,40 @@ gen.data = function(n = 5e6, seed = 123, ...){
     data.table(year = sample(2011:2014, n, TRUE), high = sample(n*0.9, n, TRUE), normal = sample(n*0.1, n, TRUE), low = sample(letters, n, TRUE), value = rnorm(n))
 }
 bdt = as.big.data.table(x = gen.data, rscl = rscl, n = 5e4) # 1e2 smaller dataset in tests
-str(bdt)
+stopifnot(length(capture.output(str(bdt)))==9L)
 
 # `[.big.data.table` will not aggregate results from nodes by default
-bdt[, .(value = sum(value))]
-bdt[, .(value = sum(value))][, .(value = sum(value))]
-bdt[, .(value = sum(value)), outer.aggregate = TRUE]
+r1 = bdt[, .(value = sum(value))]
+r2 = bdt[, .(value = sum(value))][, .(value = sum(value))]
+r3 = bdt[, .(value = sum(value)), outer.aggregate = TRUE]
+stopifnot(
+    nrow(r1)==4L,
+    nrow(r2)==1L,
+    all.equal(r2, r3)
+)
 
-bdt[, .(value = sum(value)), year, outer.aggregate = TRUE]
-bdt[, .(value = sum(value)), .(year, low), outer.aggregate = TRUE]
-bdt[, .(value = sum(value)), .(year, normal), outer.aggregate = TRUE]
+r1 = bdt[, .(value = sum(value)), year, outer.aggregate = TRUE]
+r2 = bdt[, .(value = sum(value)), .(year, low), outer.aggregate = TRUE]
+r3 = bdt[, .(value = sum(value)), .(year, normal), outer.aggregate = TRUE]
+stopifnot(
+    nrow(r1)==4L,
+    nrow(r2) > nrow(r1),
+    nrow(r2) < nrow(r3)
+)
 
 # use `outer.aggregate=TRUE` only when used columns are not renamed
-bdt[, .N, year, outer.aggregate = TRUE] # incorrect
-bdt[, .N, year]
-bdt[, .N, year][, sum(N), year] # correct
+r1 = bdt[, .N, year, outer.aggregate = TRUE] # incorrect
+r2 = bdt[, .N, year]
+r3 = bdt[, .N, year][, sum(N), year] # correct
+stopifnot(
+    nrow(r1)==4L,
+    all.equal(r1$N, rep(4L, 4L)),
+    nrow(r2)==16L,
+    nrow(r3)==4L,
+    all.equal(r2[, sum(N), year], r3)
+)
 
+# some extra tests
 stopifnot(
     # expected dims after aggregation
     all.equal(dim(bdt[, .(value = sum(value))]), c(4L,1L)),
@@ -136,52 +186,84 @@ stopifnot(
 )
 
 ### Features of big.data.table ----
-# TO DO: add tests
+
 bdt = as.big.data.table(x = quote(as.data.table(iris)), rscl = rscl)
 
 # dynamic metadata
-dim(bdt)
-nrow(bdt)
-ncol(bdt)
-bdt[, .N]
-bdt[, .(.N)]
+stopifnot(
+    all.equal(dim(bdt), c(600L, 5L)),
+    nrow(bdt)==600L,
+    ncol(bdt)==5L,
+    all.equal(bdt[, .N], setNames(rep(150L, 4L), port)),
+    bdt[, .(.N)][, sum(N)]==600L
+)
 
 # to be addressed by wrappers
 # col names
-RS.eval(rscl[[1L]], names(x))
+r1 = RS.eval(rscl[[1L]], names(x))
 # col class
-RS.eval(rscl[[1L]], lapply(x, class))
+r2 = RS.eval(rscl[[1L]], lapply(x, class))
+stopifnot(
+    all.equal(r1, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width", "Species")),
+    all.equal(r2, list(Sepal.Length = "numeric", Sepal.Width = "numeric", Petal.Length = "numeric", Petal.Width = "numeric", Species = "factor"))
+)
 
 # `[.big.data.table` - `new.var` create new big.data.table from existing one
 
 bdty = bdt[, mean(Petal.Width), Species, new.var = "y"]
-str(bdty)
-str(bdt)
+stopifnot(
+    last(capture.output(str(bdty)))=="    3     3     3     3 ",
+    last(capture.output(str(bdt)))=="  150   150   150   150 "
+)
 # can be multiple bdt pointing to same machine but different variable names
-rscl.ls(rscl)
+r = rscl.ls(rscl)
+stopifnot(
+    all.equal(r[1,], setNames(rep("gen.data", 4L), port)),
+    all.equal(r[2,], setNames(rep("x", 4L), port)),
+    all.equal(r[3,], setNames(rep("y", 4L), port))
+)
 
 # `[[.big.data.table`
 
-bdt[[expr = nrow(x)]]
+r = bdt[[expr = nrow(x)]]
+stopifnot(all.equal(r, setNames(rep(150L, 4L), port)))
 
 # nrow of both datasets on nodes
-rscl.eval(rscl, c(x=nrow(x), y=nrow(y)))
-bdt[[expr = c(x=nrow(x), y=nrow(y))]]
-bdty[[expr = c(x=nrow(x), y=nrow(y))]]
+r1 = rscl.eval(rscl, c(x=nrow(x), y=nrow(y)))
+r2 = bdt[[expr = c(x=nrow(x), y=nrow(y))]]
+r3 = bdty[[expr = c(x=nrow(x), y=nrow(y))]]
+stopifnot(
+    all.equal(r1[1,], setNames(rep(150L, 4L), port)),
+    all.equal(r1[2,], setNames(rep(3L, 4L), port)),
+    sapply(r2, function(x) all(names(x)==c("x","y"), x==c(150L,3L))),
+    all.equal(r2, r3)
+)
 
 # same query different ways
-bdt[, lapply(.SD, sum), Species]
-rscl.eval(rscl, x[, lapply(.SD, sum), Species], simplify = FALSE)
-bdt[[expr = x[, lapply(.SD, sum), Species]]]
+r1 = bdt[, lapply(.SD, sum), Species]
+r2 = rscl.eval(rscl, x[, lapply(.SD, sum), Species], simplify = FALSE)
+r3 = bdt[[expr = x[, lapply(.SD, sum), Species]]]
 # re-aggregate after rbind
-bdt[, lapply(.SD, sum), Species, outer.aggregate=TRUE]
+r4 = bdt[, lapply(.SD, sum), Species, outer.aggregate=TRUE]
+stopifnot(
+    all.equal(r1, rbindlist(r2)),
+    all.equal(r1, r3),
+    all.equal(r1[, lapply(.SD, sum), Species], r4)
+)
 
 # having two big.data.tables and `[[` we can easily join within the scope of node
-bdt[[expr = y[x, on = "Species"]]]
+r = bdt[[expr = y[x, on = "Species"]]]
+stopifnot("V1" %in% names(r))
 
 # size
-bdt[[expr = sprintf("%.4f MB", object.size(x)/(1024^2))]]
-sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
+r1 = bdt[[expr = sprintf("%.4f MB", object.size(x)/(1024^2))]]
+r2 = sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
+stopifnot(
+    is.character(r1),
+    length(r1)==4L,
+    is.character(r2),
+    length(r2)==1L
+)
 
 ### Partitioning ----
 
@@ -189,31 +271,33 @@ dt = gen.data(n=2e5)
 
 # no partitioning
 bdt = as.big.data.table(x = dt, rscl = rscl)
-bdt[[expr = nrow(x)]]
+stopifnot(
+    nrow(bdt)==200000,
+    identical(bdt[[expr = nrow(x)]], setNames(rep(50000L, 4), port))
+)
 r.no.part = bdt[[expr = x[, .N, year], rbind = FALSE]]
-print(r.no.part)
+stopifnot(
+    is.list(r.no.part),
+    sapply(r.no.part, nrow)==4L
+)
 
 # partition by "year"
 partition.by = "year"
 bdt = as.big.data.table(x = dt, rscl = rscl, partition.by = partition.by)
-bdt[[expr = nrow(x)]]
-r.part = bdt[[expr = x[, .N, year], rbind = FALSE]]
-print(r.part)
-
-# size
-bdt[[expr = sprintf("%.4f MB", object.size(x)/(1024^2))]]
-sprintf("total size: %.4f MB", sum(bdt[[expr = object.size(x)]])/(1024^2))
-
 stopifnot(
-    sapply(r.no.part, nrow)==4L,
+    nrow(bdt)==200000,
+    !identical(bdt[[expr = nrow(x)]], setNames(rep(50000L, 4), port)) # non-identical
+)
+r.part = bdt[[expr = x[, .N, year], rbind = FALSE]]
+stopifnot(
+    is.list(r.part),
     sapply(r.part, nrow)==1L
 )
 
 # fetch data from all nodes to local session
 r = as.data.table(bdt)
-r[, .N, year]
-
 stopifnot(all.equal(
+    identical(dim(r[, .N, year]), c(4L, 2L)),
     sum(r$value)==sum(dt$value),
     length(r$value)==length(dt$value),
     all.equal(r[, .(value=sum(value), .N),, .(year)], dt[, .(value=sum(value), .N),, .(year)]),
@@ -221,7 +305,11 @@ stopifnot(all.equal(
 ))
 
 rm(r, dt)
-rscl.ls(rscl)
+r = rscl.ls(rscl)
+stopifnot(
+    is.character(r),
+    identical(dim(r), c(3L,4L)) # gen.data, x, y
+)
 
 # disconnect
 rscl.close(rscl)

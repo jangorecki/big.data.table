@@ -147,7 +147,7 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @param .log currently ignored.
 bdt.assign = function(x, name, value, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
-    # TODO: add logging + tests
+    # TO DO: add logging + tests
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
@@ -182,7 +182,7 @@ bdt.assign = function(x, name, value, parallel = TRUE, .log = getOption("bigdata
 #' @param .log passed to `bdt.eval`.
 #' @return big.data.table object.
 bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
-    # TODO: add logging + update `.log` arg doc + tests
+    # TO DO: add logging + update `.log` arg doc + tests
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     nnodes = length(rscl)
@@ -207,6 +207,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
     #'         tmp = bdt.eval(rscl[i], expr = qcall, lazy = FALSE, parallel=FALSE)
     #'         if(nrow(tmp)){
     #'             # send it to potentially multiple nodes
+    #'             # TO DO: fix, it currently overrides 'x', not rbind to it
     #'             bdt.assign(x, name = "x", tmp, parallel = parallel, .log = .log)
     #'         }
     #'         TRUE
@@ -252,7 +253,6 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
     x = bdt.eval(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
     # - [x] when saving to new.var then new big.data.table will be returned
     if(!missing(new.var)){
-        #warning("!missing(new.var) return new big.data.table instead of returninig data")
         return(big.data.table(var = new.var, rscl = rscl))
     }
     # - [x] aggregate results from nodes with `outer.aggregate` arg
