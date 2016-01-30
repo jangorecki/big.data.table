@@ -1,4 +1,10 @@
 image: jangorecki/r-data.table-pg
+#services:
+#- postgres:9.5
+
+#variables:
+  #POSTGRES_HOST: postgres
+  #POSTGRES_PASSWORD: postgres
 
 before_script:
   - R CMD build . --no-build-vignettes --no-manual # to be removed after gitlab-ci-multi-runner#157
@@ -16,16 +22,22 @@ build:
 test:
   stage: test
   script:
+    - mkdir rcheck
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-vignettes --no-build-vignettes --no-manual --as-cran
+    - rcheckdir=$(find . -maxdepth 1 -name "*.Rcheck" -type d)
+    - mv rcheckdir rcheck
+  artifacts:
+    paths:
+      - rcheck
 
 pages:
   stage: deploy
   script:
     - R CMD INSTALL --html $(ls -1t *.tar.gz | head -n 1)
     - mkdir public public/html
-    - Rscript -e 'setwd("public"); invisible(sapply(list.files(system.file("html", package="big.data.table"), full.names = TRUE), file.copy, to = "html", recursive = TRUE))'
-    - echo '<html><body><h1>big.data.table</h1><br/><h3>Parallel distributed computing for data.table</h3><br/><br/><a href="big.data.table/html/00Index.html">manual</a><br/><br/>Install from R:<br/><pre><code>install.packages("big.data.table", repos = "http://jangorecki.gitlab.io/big.data.table")</code></pre></body></html>' > public/index.html
     - Rscript -e 'file.copy(system.file("DESCRIPTION", package="big.data.table"), to="public")'
+    - Rscript -e 'setwd("public"); invisible(sapply(list.files(system.file("html", package="big.data.table"), full.names = TRUE), file.copy, to = "html", recursive = TRUE))'
+    - echo '<html><body><h3>big.data.table</h3><h4>Parallel distributed computing for data.table</h4><br/><a href="big.data.table/html/00Index.html">manual</a><br/>Install from R:<br/><pre><code>install.packages("big.data.table", repos = c("https://rforge.net", "https://cran.rstudio.com","http://jangorecki.gitlab.io/big.data.table"))</code></pre></body></html>' > public/index.html
     - Rscript -e 'install.packages("drat", repos = "https://eddelbuettel.github.io/drat")'
     - Rscript -e 'drat::insertPackage(list.files(pattern = "*\\.tar\\.gz$"), "public")'
   artifacts:
