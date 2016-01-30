@@ -48,10 +48,9 @@ logR_schema(drop = TRUE)
 
 # actual tests ----
 
-logR_dump = function(.conn = getOption("logR.conn"), .table = getOption("logR.table","logr"), .schema = getOption("logR.schema","public")){
-    sql = sprintf("SELECT * FROM %s.%s;", .schema, .table)
+logR_dump = function(.conn = getOption("logR.conn"), .table = getOption("logR.table"), .schema = getOption("logR.schema")){
     tryCatch(
-        logr <- setDT(dbGetQuery(.conn, sql)),
+        logr <- setDT(dbReadTable(.conn, c(.schema, .table))),
         error = function(e) stop(sprintf("Query to logR table fails. See below sql and error for details.\n%s\n%s",sql, as.character(e)), call. = FALSE)
     )
     if(ncol(logr)) logr[order(logr_id)] else logr
