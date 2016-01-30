@@ -104,30 +104,26 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
 bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
-    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE))
+    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(silent), is.logical(.log))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
-    if(isTRUE(lazy)) expr = substitute(expr)
+    if(lazy) expr = substitute(expr)
     # - [x] logging and error catching for R nodes
+    # - [x] when `send` used it will return the boolean status of evaluated expression
     if(!.log){
-        if(isTRUE(silent)) expr = substitute(tryCatch(.expr, error = function(e) e, warning = function(w) w), list(.expr=expr))
+        if(silent) expr = substitute(try(.expr, silent = TRUE), list(.expr=expr))
+        if(send) expr = substitute(!inherits(.expr,"try-error"), list(.expr=expr))
     } else {
         expr = substitute(
-            logR(.expr, alert = .alert, silent = .silent, .log = ..log),
-            list(.expr=expr, .alert=!silent, .silent=silent, ..log=.log)
+            logR(.expr, alert = .alert, silent = .silent, boolean = .boolean, .log = ..log),
+            list(.expr=expr, .alert=!silent, .silent=silent, .boolean = send, ..log=.log)
         )
     }
-    # - [x] when `send` used it will append expression with invisible TRUE
-    if(!missing(send) && isTRUE(send)) expr = substitute({.expr; invisible(TRUE)}, list(.expr=expr))
     # - [x] execute sequentially or parallely
-    # - [x] logging on master side
+    # - [x] logging on client side, not substituting `expr`
     x = if(!.log) rscl.eval(rscl, expr, lazy = FALSE, parallel = parallel, simplify = FALSE) else {
-        rscl.eval.expr = substitute(
-            rscl.eval(rscl, expr = .expr, lazy = FALSE, parallel = .parallel, simplify = FALSE),
-            list(.expr = expr, .parallel = parallel)
-        ) # substitute to log nice expressions
         eval(substitute(
-            logR(.expr, silent = FALSE, .log = ..log),
-            list(.expr = rscl.eval.expr, ..log=.log)
+            logR(rscl.eval(rscl, expr, lazy = FALSE, parallel = .parallel, simplify = FALSE), silent = FALSE, .log = ..log),
+            list(.parallel = parallel, ..log=.log)
         ))
     }
     # - [x] format results: rbind and simplify

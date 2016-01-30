@@ -51,7 +51,8 @@ as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = 
     # execute function on nodes
     assign_x = substitute(x <- qcall, list(qcall = x))
     # populate bdt from call
-    bdt.eval(rscl, expr = assign_x, lazy = FALSE, send = TRUE, parallel = parallel, .log = .log)
+    r = bdt.eval(rscl, expr = assign_x, lazy = FALSE, send = TRUE, parallel = parallel, .log = .log)
+    if(!all(r)) stop(sprintf("Some nodes failed to evaluate expression: %s.", paste(which(!r), collapse=", ")))
     # redirect to .list method
     as.big.data.table.list(x = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel, .log = .log)
 }
