@@ -103,7 +103,7 @@ system.time(rscl.eval(rscl, Sys.sleep(1), parallel = TRUE))
 ## Using big.data.table
 
 `big.data.table` class stores `rscl` attribute having list of connections to R nodes always on hand. It catches `[.big.data.table` calls and forward them to R nodes and execute as `[.data.table` calls on chunks of data.  
-It has some useful features like auto collection from parallel processing, row bind results from nodes, exception handling, optionally logging and metadata collection using [logR](https://github.com/jangorecki/logR).  
+It has some useful features like auto collection from parallel processing, row bind results from nodes, exception handling, optionally logging and metadata collection using [logR](https://gitlab.com/jangorecki/logR).  
 
 ### Ways to create big.data.table
 
@@ -257,7 +257,13 @@ rscl.ls(rscl)
 ## Using logR ----
 
 `big.data.table` can log its processing in quite detailed grain.  
-For single `[.big.data.table` query on 4 nodes there are 10 database hits made. This is a consequence of *transactional logging* which is insert, evaluate, update. Logging is by deault disabled because it requires working postgres database instance and R packages [RPostgreSQL](https://cran.r-project.org/web/packages/RPostgreSQL/), [logR](https://github.com/jangorecki/logR) and [microbenchmarkCore](https://github.com/olafmersmann/microbenchmarkCore) package as *suggested* for high precision timing.  
+For single `[.big.data.table` query on 4 nodes there are 10 database hits made. This is a consequence of *transactional logging* which insert log entry to db, evaluate R expression and then updates log i db.  
+Logging is by deault disabled because it requires working postgres database instance and R packages [RPostgreSQL](https://cran.r-project.org/web/packages/RPostgreSQL/), [logR](https://gitlab.com/jangorecki/logR) and [microbenchmarkCore](https://github.com/olafmersmann/microbenchmarkCore) package as *suggested* for high precision timing.  
+
+If you don't have postgres database but you do have docker you can run postgres with this command.  
+```
+docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg postgres:9.5
+```
 
 ```r
 library(logR)
