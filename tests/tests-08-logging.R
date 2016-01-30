@@ -1,7 +1,7 @@
-## mockup postgres service
+## for check on localhost use postgres service
 # docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg postgres:9.5
 
-# if not gitlab-ci then skip if R client doesn't have logR cannot connect db ----
+# if no gitlab-ci then skip if R client doesn't have logR or cannot connect db ----
 
 skipifnot = function(x){
     gl = identical(Sys.getenv("CI_SERVER_NAME"), "GitLab CI")

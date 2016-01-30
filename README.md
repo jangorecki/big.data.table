@@ -257,7 +257,29 @@ rscl.ls(rscl)
 ## Using logR ----
 
 `big.data.table` can log its processing in quite detailed grain.  
-For single `[.big.data.table` query on 4 nodes there are 10 database hits made. This is a consequence of *transactional logging*: insert, evaluate, update. Logging is by deault disabled because it requires working postgres database instance and R packages [RPostgreSQL](https://cran.r-project.org/web/packages/RPostgreSQL/), [logR](https://github.com/jangorecki/logR) and [microbenchmarkCore](https://github.com/olafmersmann/microbenchmarkCore) package as *suggested* for high precision timing.  
+For single `[.big.data.table` query on 4 nodes there are 10 database hits made. This is a consequence of *transactional logging* which is insert, evaluate, update. Logging is by deault disabled because it requires working postgres database instance and R packages [RPostgreSQL](https://cran.r-project.org/web/packages/RPostgreSQL/), [logR](https://github.com/jangorecki/logR) and [microbenchmarkCore](https://github.com/olafmersmann/microbenchmarkCore) package as *suggested* for high precision timing.  
+
+```r
+library(logR)
+rscl.require(rscl, "logR")
+
+# logR connect from client and nodes
+logR_connect()
+rscl.eval(rscl, logR_connect(quoted = TRUE), lazy = FALSE)
+
+# create logR db objects, run only once
+logR_schema(drop = FALSE)
+
+# turn logging on
+op = options("bigdatatable.log" = TRUE)
+
+# use big.data.tasble
+bdt = as.big.data.table(quote(as.data.table(iris)), rscl)
+bdt[, lapply(.SD, mean), Species]
+
+# logR dump
+logR_dump()
+```
 
 ## Disconnect nodes
 

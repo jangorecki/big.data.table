@@ -311,5 +311,7 @@ stopifnot(
     identical(dim(r), c(3L,4L)) # gen.data, x, y
 )
 
+# closing workspace ----
+
 # disconnect
 rscl.close(rscl)
