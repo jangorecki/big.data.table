@@ -1,5 +1,7 @@
+## mockup postgres service
+# docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg postgres:9.5
 
-# skip if R client or R nodes doesn't have logR or cannot reach postgres database ----
+# if not gitlab-ci then skip if R client or R nodes doesn't have logR or cannot connect db ----
 
 skipifnot = function(x) if(!isTRUE(all(x))) q(save = "no", status = 0)
 
@@ -17,9 +19,6 @@ rscl = rscl.connect(port, pkgs = "data.table")
 
 # skip tests if logR not available on R nodes
 skipifnot(rscl.require(rscl, "logR"))
-
-## docker postgres
-# docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg postgres:9.5
 
 # logR connect to postgres database, use db connection from the client machine
 q.dbConnect = substitute({
@@ -39,10 +38,10 @@ q.dbConnect = substitute({
 
 conn = dbConnect(PostgreSQL(), host = Sys.getenv("POSTGRES_HOST", "127.0.0.1"), port = Sys.getenv("POSTGRES_PORT", "5432"), dbname = Sys.getenv("POSTGRES_DB", "postgres"), user = Sys.getenv("POSTGRES_USER", "postgres"), password = Sys.getenv("POSTGRES_PASSWORD", "postgres"))
 
-# skip if not database available from client
+# skip if no database available from client
 skipifnot(eval(q.dbConnect))
 
-# skip if not database available from R nodes
+# skip if no database available from R nodes
 skipifnot(rscl.eval(rscl, q.dbConnect, lazy = FALSE))
 
 # create db structure ----
@@ -92,6 +91,8 @@ stopifnot(
     r$timing > 0.5,
     which.max(r$timing)==1L
 )
+
+print(logR_query())
 
 # closing workspace ----
 
