@@ -5,7 +5,7 @@
 
 skipifnot = function(x){
     gl = identical(Sys.getenv("CI_SERVER_NAME"), "GitLab CI")
-    if(!gl && !isTRUE(all(x))) q(save = "no", status = 0)
+    if(!gl & !isTRUE(all(x))) q(save = "no", status = 0)
 }
 
 # skip tests if logR not available on client
@@ -54,7 +54,7 @@ logR_schema(drop = TRUE)
 logR_dump = function(.conn = getOption("logR.conn"), .table = getOption("logR.table"), .schema = getOption("logR.schema")){
     tryCatch(
         logr <- setDT(dbReadTable(.conn, c(.schema, .table))),
-        error = function(e) stop(sprintf("Query to logR table fails. See below sql and error for details.\n%s\n%s",sql, as.character(e)), call. = FALSE)
+        error = function(e) stop(sprintf("Query to logR table fails. See below schema.table and error for details.\n%s\n%s", paste(c(.schema, .table), collapse="."), as.character(e)), call. = FALSE)
     )
     if(ncol(logr)) logr[order(logr_id)] else logr
 }
