@@ -40,10 +40,10 @@ stopifnot(all.equal(
 # require ----
 
 # single package require
-stopifnot(rscl.require(rscl, "pg"))
+stopifnot(rscl.require(rscl, "methods"))
 
 # multi node multi package require
-stopifnot(rscl.require(rscl, c("data.table","pg")))
+stopifnot(rscl.require(rscl, c("methods","data.table")))
 
 # non-available package require return FALSE
 stopifnot(!rscl.require(rscl, c("asdasdasdasd","asdasdasdasd2")))
