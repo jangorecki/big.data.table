@@ -25,7 +25,7 @@ test:
     - mkdir rcheck
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-vignettes --no-build-vignettes --no-manual --as-cran
     - rcheckdir=$(find . -maxdepth 1 -name "*.Rcheck" -type d)
-    - mv rcheckdir rcheck
+    - mv $rcheckdir rcheck
   artifacts:
     paths:
       - rcheck
