@@ -254,6 +254,11 @@ rm(r, dt)
 rscl.ls(rscl)
 ```
 
+## Using logR ----
+
+`big.data.table` can log its processing in quite detailed grain.  
+For single `[.big.data.table` query on 4 nodes there are 10 database hits made. This is a consequence of *transactional logging*: insert, evaluate, update. Logging is by deault disabled because it requires working postgres database instance and R packages [RPostgreSQL](https://cran.r-project.org/web/packages/RPostgreSQL/), [logR](https://github.com/jangorecki/logR) and [microbenchmarkCore](https://github.com/olafmersmann/microbenchmarkCore) package as *suggested* for high precision timing.  
+
 ## Disconnect nodes
 
 ```r
