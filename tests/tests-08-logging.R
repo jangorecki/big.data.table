@@ -36,8 +36,6 @@ q.dbConnect = substitute({
     .password = Sys.getenv("POSTGRES_PASSWORD", "postgres")
 ))
 
-conn = dbConnect(PostgreSQL(), host = Sys.getenv("POSTGRES_HOST", "127.0.0.1"), port = Sys.getenv("POSTGRES_PORT", "5432"), dbname = Sys.getenv("POSTGRES_DB", "postgres"), user = Sys.getenv("POSTGRES_USER", "postgres"), password = Sys.getenv("POSTGRES_PASSWORD", "postgres"))
-
 # skip if no database available from client
 skipifnot(eval(q.dbConnect))
 
@@ -92,7 +90,7 @@ stopifnot(
     which.max(r$timing)==1L
 )
 
-print(logR_query())
+print(logR_dump())
 
 # closing workspace ----
 
