@@ -25,6 +25,7 @@ build:
 test:
   stage: test
   script:
+    - Rscript -e 'Sys.getenv("CI_SERVER_NAME")'
     # run check
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-vignettes --no-build-vignettes --no-manual --as-cran
     # export Rcheck results
