@@ -26,7 +26,7 @@ pages:
     # produce html homepage and manual
     - Rscript -e 'drat::packageHtml(repodir = "public", repo.url = "https://jangorecki.github.io/big.data.table", repo.cran = TRUE, manual = TRUE)'
   only:
-    - logging
+    - master
   artifacts:
     paths:
       - Rcheck
