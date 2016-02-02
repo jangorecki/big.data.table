@@ -24,40 +24,16 @@ rscl = rscl.connect(port, pkgs = "data.table")
 stopifnot(rscl.require(rscl, "logR"))
 
 # logR connect to postgres database, use db connection from the client machine
-q.dbConnect = substitute({
-    r = tryCatch2(dbConnect(PostgreSQL(), host = .host, port = .port, dbname = .dbname, user = .user, password = .password))
-    if(is.null(r$error) && is.null(r$warning) && typeof(r$value)=="S4" && inherits(r$value, "PostgreSQLConnection")){
-        options("logR.conn" = r$value)
-        r = TRUE
-    } else r = FALSE
-    r
-}, env = list(
-    .host = Sys.getenv("POSTGRES_HOST", "127.0.0.1"), 
-    .port = Sys.getenv("POSTGRES_PORT", "5432"), 
-    .dbname = Sys.getenv("POSTGRES_DB", "postgres"), 
-    .user = Sys.getenv("POSTGRES_USER", "postgres"), 
-    .password = Sys.getenv("POSTGRES_PASSWORD", "postgres")
-))
-
-# skip if no database available from client
-skipifnot(eval(q.dbConnect))
+skipifnot(logR_connect())
 
 # stop if no database available from R nodes, it should be available as is for client
-stopifnot(rscl.eval(rscl, q.dbConnect, lazy = FALSE))
+stopifnot(rscl.eval(rscl, logR_connect(quoted = TRUE), lazy = FALSE))
 
 # create db structure ----
 
 logR_schema(drop = TRUE)
 
 # actual tests ----
-
-logR_dump = function(.conn = getOption("logR.conn"), .table = getOption("logR.table"), .schema = getOption("logR.schema")){
-    tryCatch(
-        logr <- setDT(dbReadTable(.conn, c(.schema, .table))),
-        error = function(e) stop(sprintf("Query to logR table fails. See below schema.table and error for details.\n%s\n%s", paste(c(.schema, .table), collapse="."), as.character(e)), call. = FALSE)
-    )
-    if(ncol(logr)) logr[order(logr_id)] else logr
-}
 
 # default non logging scenario produces 0 logs
 options("bigdatatable.log" = FALSE)
@@ -98,9 +74,8 @@ print(logR_dump())
 # closing workspace ----
 
 # database disconnect
-q.dbDisconnect = quote(dbDisconnect(getOption("logR.conn")))
-rscl.eval(rscl, q.dbDisconnect, lazy = FALSE)
-eval(q.dbDisconnect)
+rscl.eval(rscl, logR_disconnect(quoted = TRUE), lazy = FALSE)
+logR_disconnect()
 
 # R disconnect
 rscl.close(rscl)
