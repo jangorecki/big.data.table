@@ -13,10 +13,6 @@ pages:
   script:
     # build pkg
     - R CMD build . --no-build-vignettes --no-manual
-    # install deps
-    - Rscript -e 'install.packages(c("RPostgreSQL","data.table"), repos="https://cran.rstudio.com")'
-    # install suggests
-    - Rscript -e 'install.packages(c("microbenchmarkCore","logR"), repos = c("https://jangorecki.github.io/logR","https://olafmersmann.github.io/drat","https://cran.rstudio.com"))'
     # run check
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-vignettes --no-build-vignettes --no-manual --as-cran
     # gl-pages dir and Rcheck results dir
