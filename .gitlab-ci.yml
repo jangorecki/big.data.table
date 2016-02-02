@@ -11,9 +11,6 @@ variables:
 
 pages:
   script:
-    # non-R dependencies
-    - apt-get update -qy
-    - apt-get install -y libpq-dev
     # build pkg
     - R CMD build . --no-build-vignettes --no-manual
     # install deps
@@ -33,7 +30,7 @@ pages:
     # produce html homepage and manual
     - Rscript -e 'drat::packageHtml(repodir = "public", repo.url = "https://jangorecki.github.io/big.data.table", repo.cran = TRUE, manual = TRUE)'
   only:
-    - master
+    - logging
   artifacts:
     paths:
       - Rcheck
