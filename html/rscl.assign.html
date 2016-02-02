@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: 'RS.assign' for list of Rserve connections</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for rscl.assign {big.data.table}"><tr><td>rscl.assign {big.data.table}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>'RS.assign' for list of Rserve connections</h2>
+
+<h3>Description</h3>
+
+<p>Wrapper on 'RS.assign' for list of Rserve connections.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rscl.assign(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE,
+  parallel = FALSE, simplify = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>rscl,</code></td>
+<td>
+<p>lists of Rserve connections.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>character variable of name to be used in each node for new object.</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>object to be assigned to each node.</p>
+</td></tr>
+<tr valign="top"><td><code>wait</code></td>
+<td>
+<p>logical default TRUE passed to 'RS.eval'.</p>
+</td></tr>
+<tr valign="top"><td><code>parallel</code></td>
+<td>
+<p>logical, default FALSE, when TRUE it will auto collect results</p>
+</td></tr>
+<tr valign="top"><td><code>simplify</code></td>
+<td>
+<p>logical, default TRUE, passed to underlying 'sapply'.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Results from 'RS.assign' in 'sapply'.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>big.data.table</em> version 0.3.3 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Eval on list of Rserve instances</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for rscl.eval {big.data.table}"><tr><td>rscl.eval {big.data.table}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Eval on list of Rserve instances</h2>
+
+<h3>Description</h3>
+
+<p>A wrapper to 'RS.eval'.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rscl.eval(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE,
+  lazy = TRUE, parallel = FALSE, simplify = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>rscl</code></td>
+<td>
+<p>lists of Rserve connections.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>expression, can be quoted then use *lazy* arg. Can be list of quoted expression to run on all nodes in by expression batches on all R nodes.</p>
+</td></tr>
+<tr valign="top"><td><code>wait</code></td>
+<td>
+<p>logical default TRUE passed to 'RS.eval'. If *parallel* arg is TRUE then this argument is ignored.</p>
+</td></tr>
+<tr valign="top"><td><code>lazy</code></td>
+<td>
+<p>logical default TRUE, when FALSE then *x* is quoted or a list of quoted.</p>
+</td></tr>
+<tr valign="top"><td><code>parallel</code></td>
+<td>
+<p>logical, default FALSE, when TRUE it will auto collect results</p>
+</td></tr>
+<tr valign="top"><td><code>simplify</code></td>
+<td>
+<p>logical, default TRUE, passed to underlying 'sapply'.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Logical matrix.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>big.data.table</em> version 0.3.3 <a href="00Index.html">Index</a>]</div>
+</body></html>

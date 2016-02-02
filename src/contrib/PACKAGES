@@ -1,8 +1,8 @@
 Package: big.data.table
-Version: 0.2
+Version: 0.3.3
 Imports: data.table (>= 1.9.6), Rserve, RSclient
-Suggests: microbenchmarkCore
+Suggests: logR (>= 2.1.3)
 License: GPL-3
-MD5sum: 54c1cd3e2b37263082831cd1f431e852
+MD5sum: c996b8f4ffa9a9d843a384cc815f7e82
 NeedsCompilation: no
 

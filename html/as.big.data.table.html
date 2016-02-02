@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Convert to big.data.table</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for as.big.data.table {big.data.table}"><tr><td>as.big.data.table {big.data.table}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Convert to big.data.table</h2>
+
+<h3>Description</h3>
+
+<p>Convert to big.data.table
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+as.big.data.table(x, ...)
+
+## S3 method for class 'function'
+as.big.data.table(x, rscl, partition.by, partitions,
+  parallel = TRUE, ..., .log = getOption("bigdatatable.log", FALSE))
+
+## S3 method for class 'call'
+as.big.data.table(x, rscl, partition.by, partitions,
+  parallel = TRUE, ..., .log = getOption("bigdatatable.log", FALSE))
+
+## S3 method for class 'list'
+as.big.data.table(x, partition.by, partitions, parallel = TRUE,
+  ..., .log = getOption("bigdatatable.log", FALSE))
+
+## S3 method for class 'data.table'
+as.big.data.table(x, rscl, partition.by, partitions,
+  parallel = TRUE, ..., .log = getOption("bigdatatable.log", FALSE))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>object to cast into big.data.table, can be data.table, function, quoted call or a list.</p>
+</td></tr>
+<tr valign="top"><td><code>rscl</code></td>
+<td>
+<p>list of Rserve connections, can be validated by 'is.rscl(rscl, silent=FALSE)'.</p>
+</td></tr>
+<tr valign="top"><td><code>partition.by</code></td>
+<td>
+<p>character vector of column names to be used for partitioning, 'uniqueN' by those columns should be lower than number of nodes.</p>
+</td></tr>
+<tr valign="top"><td><code>partitions</code></td>
+<td>
+<p>data.table of unique combinations of values in *partition.by* columns.</p>
+</td></tr>
+<tr valign="top"><td><code>parallel</code></td>
+<td>
+<p>logical, see '?bdt.eval'.</p>
+</td></tr>
+<tr valign="top"><td><code>.log</code></td>
+<td>
+<p>logical if *TRUE* then logging will be done using logR to postgres db.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments passed to methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>big.data.table object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Supported 'x' data types are *data.table* (will be automatically spread across the nodes), *function* or quoted *call* will be evaluated on each node and assigned to 'x' variable, a *list* will struct big.data.table on already working set of nodes, all having 'x' data.tables.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>big.data.table</em> version 0.3.3 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extract from big.data.table</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for [[.big.data.table {big.data.table}"><tr><td>[[.big.data.table {big.data.table}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Extract from big.data.table</h2>
+
+<h3>Description</h3>
+
+<p>Extract from big.data.table
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'big.data.table'
+x[[j, expr, lazy = TRUE, send = FALSE, i, ...,
+  simplify = TRUE, rbind = TRUE, parallel = TRUE,
+  .log = getOption("bigdatatable.log", FALSE)]]
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>big.data.table object.</p>
+</td></tr>
+<tr valign="top"><td><code>j</code></td>
+<td>
+<p>numeric scalar, if provided then all other arguments are ignored and subset behaves the same way as for data.table, but returns 0 length column.</p>
+</td></tr>
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>expression to be evaluated on node where data.table objects are stored as 'x' variable in '.GlobalEnv'.</p>
+</td></tr>
+<tr valign="top"><td><code>lazy</code></td>
+<td>
+<p>logical if TRUE then *expr* is substituted.</p>
+</td></tr>
+<tr valign="top"><td><code>send</code></td>
+<td>
+<p>logical, if TRUE submit expression appended with 'TRUE' to not fetch potentially big results from provided *expr*, useful for data.table __set*__ or ':=' functions.</p>
+</td></tr>
+<tr valign="top"><td><code>i</code></td>
+<td>
+<p>numeric restrict expression to particular nodes</p>
+</td></tr>
+<tr valign="top"><td><code>simplify</code></td>
+<td>
+<p>logical passed to 'bdt.eval', affects the type of returned object.</p>
+</td></tr>
+<tr valign="top"><td><code>rbind</code></td>
+<td>
+<p>logical passed to 'bdt.eval', affects the type of returned object.</p>
+</td></tr>
+<tr valign="top"><td><code>parallel</code></td>
+<td>
+<p>logical if parallel *TRUE* (default) it will send expression to nodes using 'wait=FALSE' and collect results afterward executing each node in parallel.</p>
+</td></tr>
+<tr valign="top"><td><code>.log</code></td>
+<td>
+<p>logical if *TRUE* then logging will be done using logR to postgres db.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>ignored.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as *lapply*. When using *rbind* or *simplify* the returned list be can simplified.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>big.data.table</em> version 0.3.3 <a href="00Index.html">Index</a>]</div>
+</body></html>

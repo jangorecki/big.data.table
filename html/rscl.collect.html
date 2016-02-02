@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Collect results from Rserve connection list</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for rscl.collect {big.data.table}"><tr><td>rscl.collect {big.data.table}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Collect results from Rserve connection list</h2>
+
+<h3>Description</h3>
+
+<p>Collect results from Rserve connection list
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rscl.collect(rscl = getOption("bigdatatable.rscl"), timeout = Inf,
+  detail = FALSE, try = TRUE, simplify = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>rscl</code></td>
+<td>
+<p>list of connections to R nodes</p>
+</td></tr>
+<tr valign="top"><td><code>timeout</code></td>
+<td>
+<p>numeric passed to 'RS.collect'.</p>
+</td></tr>
+<tr valign="top"><td><code>detail</code></td>
+<td>
+<p>logical passed to 'RS.collect'.</p>
+</td></tr>
+<tr valign="top"><td><code>try</code></td>
+<td>
+<p>logical default TRUE, will wrap collection into 'try' to finish collection from all nodes instead of aborting on error.</p>
+</td></tr>
+<tr valign="top"><td><code>simplify</code></td>
+<td>
+<p>logical, default TRUE, passed to underlying 'sapply'.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Results from 'try' 'RS.collect' from each node, simplified if possible.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>big.data.table</em> version 0.3.3 <a href="00Index.html">Index</a>]</div>
+</body></html>
