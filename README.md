@@ -269,12 +269,12 @@ docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg p
 library(logR)
 rscl.require(rscl, "logR")
 
-# logR connect from client and nodes
+# logR connect postgres from client and nodes
 logR_connect()
 rscl.eval(rscl, logR_connect(quoted = TRUE), lazy = FALSE)
 
 # create logR db objects, run only once
-logR_schema(drop = FALSE)
+logR_schema()
 
 # turn logging on
 op = options("bigdatatable.log" = TRUE)
