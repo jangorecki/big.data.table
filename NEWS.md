@@ -1,5 +1,7 @@
 # big.data.table 0.3.3 (devel)
 
+* `rscl.eval` gets `expr.template` argument to nest actual `expr` as `.expr` in template expression.
+* thanks to above building `logR` is now pushed down to `rscl.eval`, making `expr` log in db more verbose.
 * Unit tests for logging to postgres db, auto skip when desired.
 * Using `postgres` service in CI.
 * Single CI job, generating tech homepage with `drat::packageHtml`.

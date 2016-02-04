@@ -3,8 +3,9 @@ library(data.table)
 library(big.data.table)
 
 # connect
+host = "127.0.0.1"
 port = 33311:33314
-rscl = rscl.connect(port, pkgs = "data.table")
+rscl = rscl.connect(port, host, pkgs = "data.table")
 
 # populate
 gen.data = function(n = 5e4, seed = 123, ...){

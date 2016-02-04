@@ -3,8 +3,9 @@ library(data.table)
 library(big.data.table)
 
 # connect
+host = "127.0.0.1"
 port = 33311:33314
-rscl = rscl.connect(port, pkgs = "data.table")
+rscl = rscl.connect(port, host, pkgs = "data.table")
 
 # .function - having cluster working and source data in csv on disk of each node ----
 

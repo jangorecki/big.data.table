@@ -1,5 +1,5 @@
 ## for check on localhost use postgres service
-# docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg postgres:9.5
+# docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name bgd-logging-test postgres:9.5
 
 # if no gitlab-ci then skip if R client doesn't have logR or cannot connect db ----
 
@@ -17,8 +17,9 @@ library(big.data.table)
 library(logR)
 
 # connect R nodes
+host = "127.0.0.1"
 port = 33311:33314
-rscl = rscl.connect(port, pkgs = "data.table")
+rscl = rscl.connect(port, host, pkgs = "data.table")
 
 # stop if logR not available on nodes, should be because client already passed
 stopifnot(rscl.require(rscl, "logR"))
@@ -68,8 +69,24 @@ stopifnot(
     which.max(r$timing)==1L
 )
 
-# preview logs to Rout
-print(logR_dump())
+# expected deparsed expression
+logr = logR_dump()
+stopifnot(
+    # parent calls
+    substr(logr[1L, expr], 1, 53)=="rscl.eval(rscl, x <- as.data.table(iris), lazy = TRUE",
+    substr(logr[6L, expr], 1, 60)=="rscl.eval(rscl, x[, lapply(.SD, mean), Species], lazy = TRUE",
+    substr(logr[11L, expr], 1, 66)=="rscl.eval(rscl, x[, {\n    Sys.sleep(0.5)\n    .(.N)\n}], lazy = TRUE",
+    # child calls
+    logr[2L, expr]=="x <- as.data.table(iris)",
+    logr[7L, expr]=="x[, lapply(.SD, mean), Species]",
+    logr[12L, expr]=="x[, {\n    Sys.sleep(0.5)\n    .(.N)\n}]",
+    # all childs equal
+    logr[2:5, uniqueN(expr)==1L],
+    logr[7:10, uniqueN(expr)==1L],
+    logr[12:15, uniqueN(expr)==1L]
+)
+
+print(logr)
 
 # closing workspace ----
 

@@ -113,17 +113,18 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
         if(silent) expr = substitute(try(.expr, silent = TRUE), list(.expr=expr))
         if(send) expr = substitute(!inherits(.expr,"try-error"), list(.expr=expr))
     } else {
-        expr = substitute(
+        # - [ ] TO DO push down logging to rscl.eval, maybe as `template` argument, it will allow to parse `expr` in `rscl.eval` log entries
+        expr.template = substitute(
             logR(.expr, alert = .alert, silent = .silent, boolean = .boolean, .log = ..log),
-            list(.expr=expr, .alert=!silent, .silent=silent, .boolean = send, ..log=.log)
-        )
+            list(.alert=!silent, .silent=silent, .boolean = send, ..log=.log)
+        ) # .expr will be substituted 
     }
     # - [x] execute sequentially or parallely
     # - [x] logging on client side, not substituting `expr`
     x = if(!.log) rscl.eval(rscl, expr, lazy = FALSE, parallel = parallel, simplify = FALSE) else {
         eval(substitute(
-            logR(rscl.eval(rscl, expr, lazy = FALSE, parallel = .parallel, simplify = FALSE), silent = FALSE, .log = ..log),
-            list(.parallel = parallel, ..log=.log)
+            logR(rscl.eval(rscl, .expr, lazy = TRUE, parallel = .parallel, simplify = FALSE, expr.template = .expr.template), silent = FALSE, .log = ..log),
+            list(.expr = expr, .parallel = parallel, .expr.template = expr.template, ..log=.log)
         ))
     }
     # - [x] format results: rbind and simplify

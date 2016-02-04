@@ -5,6 +5,7 @@ library(RSclient)
 library(data.table)
 library(big.data.table)
 
+Sys.setenv(RSERVE_HOST="127.0.0.1")
 port = 33311:33314
 # wrapper to sapply on RS.connect with recycling, auto require pkgs
 rscl = rscl.connect(port, pkgs = "data.table")

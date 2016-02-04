@@ -4,7 +4,7 @@
 \title{Eval on list of Rserve instances}
 \usage{
 rscl.eval(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE,
-  lazy = TRUE, parallel = FALSE, simplify = TRUE)
+  lazy = TRUE, parallel = FALSE, simplify = TRUE, expr.template)
 }
 \arguments{
 \item{rscl}{lists of Rserve connections.}
@@ -18,6 +18,8 @@ rscl.eval(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE,
 \item{parallel}{logical, default FALSE, when TRUE it will auto collect results}
 
 \item{simplify}{logical, default TRUE, passed to underlying `sapply`.}
+
+\item{expr.template}{expression, any `.expr` will be substituted with `x` arg and evaluated as `x`, useful for inject `tryCatch`. Suggested way is to use logR which requires postgres, quite scary thing for many people.}
 }
 \value{
 Logical matrix.

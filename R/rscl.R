@@ -26,7 +26,12 @@ rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.get
             nm = host
         }
     }
-    rscl = lapply(setNames(seq_along(host), nm), function(i) RS.connect(host = host[[i]], port = port[[i]], tls = tls, proxy.target = proxy.target, proxy.wait = proxy.wait))
+    rscl = lapply(
+        setNames(seq_along(host), nm),
+        function(i) tryCatch(RS.connect(host = host[[i]], port = port[[i]], tls = tls, proxy.target = proxy.target, proxy.wait = proxy.wait), error = function(e) e)
+    )
+    err = sapply(rscl, inherits, "error")
+    if(any(err)) stop(sprintf("Failed to connect to %s node%s from the list.", paste(which(err), collapse=", "), if(sum(err) > 1L) "s" else ""))
     if(length(pkgs)){
         stopifnot(is.character(pkgs))
         rscl.require(rscl, pkgs, quietly = FALSE)
@@ -49,13 +54,25 @@ rscl.close = function(rscl){
 #' @param lazy logical default TRUE, when FALSE then *x* is quoted or a list of quoted.
 #' @param parallel logical, default FALSE, when TRUE it will auto collect results
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
+#' @param expr.template expression, any `.expr` will be substituted with `x` arg and evaluated as `x`, useful for inject `tryCatch`. Suggested way is to use logR which requires postgres, quite scary thing for many people.
 #' @return Logical matrix.
-rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, parallel = FALSE, simplify = TRUE){
+rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, parallel = FALSE, simplify = TRUE, expr.template){
     stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy), is.logical(parallel), is.logical(simplify))
     expr = if(isTRUE(lazy)) substitute(x) else x
+    # - [x] allow to inject any expression and every `.expr` symbol will be substituted with actual `x` expression, a way to push down the logR call for cleaner logs
+    if(isTRUE(getOption("dev"))) browser()
+    if(!missing(expr.template)){
+        expr = eval(substitute(
+            substitute(
+                .expr.template,
+                list(.expr = expr)
+            ),
+            list(.expr.template = substitute(expr.template))
+        ))
+    }
     # returns
     if(parallel){
-        invisible(rscl.eval(rscl, expr, wait = FALSE, lazy = FALSE))
+        invisible(sapply(rscl, RS.eval, expr, wait = FALSE, lazy = FALSE))
         rscl.collect(rscl, simplify = simplify)
     } else {
         sapply(rscl, RS.eval, expr, wait = wait, lazy = FALSE, simplify = simplify)

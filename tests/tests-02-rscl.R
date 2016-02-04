@@ -37,6 +37,21 @@ stopifnot(all.equal(
     setNames(rep(list(character(0)),length(host)), host)
 ))
 
+# env vars ----
+
+Sys.setenv(RSERVE_HOST="0.42.42.42") # invalid ip
+port = 33311:33314
+r = tryCatch(rscl.connect(port), error = function(e) e)
+stopifnot(inherits(r, "error"))
+
+Sys.setenv(RSERVE_HOST="127.0.0.1")
+port = 33311:33314
+rscl = rscl.connect(port)
+stopifnot(all.equal(
+    rscl.ls(rscl),
+    setNames(rep(list(character(0)),length(port)), port)
+))
+
 # require ----
 
 # single package require
