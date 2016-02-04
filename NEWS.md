@@ -1,5 +1,6 @@
 # big.data.table 0.3.3 (devel)
 
+* CI moved to `jangorecki/r-data.table` for easier rebuilding deps.
 * `rscl.eval` gets `expr.template` argument to nest actual `expr` as `.expr` in template expression.
 * thanks to above building `logR` is now pushed down to `rscl.eval`, making `expr` log in db more verbose.
 * Unit tests for logging to postgres db, auto skip when desired.

@@ -1,4 +1,4 @@
-image: jangorecki/r-data.table-pg
+image: jangorecki/r-data.table
 services:
 - postgres
 
@@ -11,8 +11,15 @@ variables:
 
 pages:
   script:
+    # non-R dependencies
+    - apt-get update -qy
+    - apt-get install -y libpq-dev
     # build pkg
     - R CMD build . --no-build-vignettes --no-manual
+    # install deps
+    - Rscript -e 'install.packages("RPostgreSQL", repos = "https://cran.rstudio.com")'
+    # install suggests
+    - Rscript -e 'install.packages(c("microbenchmarkCore","logR"), repos = paste0("https://", c("cran.rstudio.com","olafmersmann.github.io/drat","jangorecki.github.io/logR")))'
     # run check
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-vignettes --no-build-vignettes --no-manual --as-cran
     # gl-pages dir and Rcheck results dir
