@@ -24,14 +24,12 @@ pages:
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-vignettes --no-build-vignettes --no-manual --as-cran
     # gl-pages dir and Rcheck results dir
     - mkdir public Rcheck
-    # export Rcheck results
-    - mv $(find . -maxdepth 1 -name "*.Rcheck" -type d) Rcheck
     # install drat with `packageHtml` function
     - Rscript -e 'install.packages("drat", repos = "https://jangorecki.github.io/drat")'
-    # produce drat repo
-    - Rscript -e 'drat::insertPackage(list.files(pattern = "*\\.tar\\.gz$"), repodir = "public")'
-    # produce html homepage and manual
-    - Rscript -e 'drat::packageHtml(repodir = "public", repo.url = "https://jangorecki.github.io/big.data.table", repo.cran = TRUE, manual = TRUE)'
+    # produce artifacts
+    - Rscript -e 'drat::insertArtifacts(repodir = "public", repo.url = "https://jangorecki.github.io/big.data.table", repo.cran = TRUE)'
+    # export Rcheck results
+    - mv $(find . -maxdepth 1 -name "*.Rcheck" -type d) Rcheck
   only:
     - master
   artifacts:
