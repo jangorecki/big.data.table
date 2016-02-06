@@ -101,10 +101,11 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 #' @param rbind logical if *TRUE* (default) results are data.table they will be rbinded.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @param silent should be silently catched by `try` or `logR` if enabled.
+#' @param outer.aggregate logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc. Also conflicts with filtering in `i`. Can be also a function taking first argument `x` rbinded data.table.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @details The `bdt.eval.log` function is wrapper on `bdt.eval` with `logR()` call, so use only when logR connected.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
-bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, outer.aggregate = FALSE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE, .log = getOption("bigdatatable.log",FALSE)){
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(outer.aggregate) | is.function(outer.aggregate), is.logical(silent), is.logical(.log))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     if(lazy) expr = substitute(expr)
@@ -125,20 +126,14 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
     # - [x] format results: rbind and simplify
     if(rbind && is.data.table(x[[1L]])){
         x = rbindlist(x)
-        # - [x] aggregate results from nodes with `outer.aggregate` arg, and a custom function
+        # - [x] aggregate results from nodes with `outer.aggregate` arg, custom function or re-call expr
         if(is.function(outer.aggregate)){
-            # safe post process
+            if(!length(formals(outer.aggregate))) stop("`outer.aggregate` function needs to have at least one argument to accept data.table.")
             x = eval(as.call(list(outer.aggregate, x)))
         } else if(isTRUE(outer.aggregate)){
-            # that may failed when filtering in `i = package == "data.table"`
-            # also .N, .SD won't work
-            if(org.expr[[1L]]==as.name("[")){
-                if(org.expr[[2L]]!=as.name("x")){
-                    warning("Expression has to be adjusted for variable name on client side. Use `outer.aggregate` as function")
-                    org.expr[[2L]] = as.name("x")
-                }
-                x = eval(org.expr)
-            } else stop("`outer.aggregate=TRUE` works only for `[` calls.")
+            # # that may failed when filtering and aggregate, also .N, .SD won't work
+            x <- tryCatch(eval(org.expr), error = function(e) e)
+            if(inherits(x, "error")) stop(sprintf("Re-calling expression in `outer.aggregate=TRUE` failed, use `outer.aggregate` as function, or operate on re-call'able expressions. Actual error: %s", as.character(e)))
         }
     } else if(simplify && length(x) && length(x[[1L]])==1 && is.atomic(x[[1L]])){
         if(all(sapply(x, length)==1L) && all(sapply(x, is.atomic)) && length(unique(sapply(x, typeof)))==1L) x = simplify2array(x)
@@ -147,7 +142,7 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
 }
 
 #' @rdname bdt.eval
-bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, outer.aggregate = FALSE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE, .log = getOption("bigdatatable.log",FALSE)){
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(outer.aggregate) | is.function(outer.aggregate), is.logical(silent), is.logical(.log))
     if(lazy) expr = substitute(expr)
     # - [x] logging on client side
@@ -297,9 +292,10 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
 #' @param simplify logical passed to `bdt.eval`, affects the type of returned object.
 #' @param rbind logical passed to `bdt.eval`, affects the type of returned object.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
+#' @param outer.aggregate logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc. Also conflicts with filtering in `i`. Can be also a function taking first argument `x` rbinded data.table.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as *lapply*. When using *rbind* or *simplify* the returned list be can simplified.
-"[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+"[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",FALSE), .log = getOption("bigdatatable.log",FALSE)){
     # when `j` provided it return empty column from bdt to get a class of column
     if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(core.data.table(x)[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
@@ -312,7 +308,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
         stopifnot(is.numeric(i))
         all.nodes = FALSE
     }
-    bdt.eval.log(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, .log = .log)
+    bdt.eval.log(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, outer.aggregate = outer.aggregate, .log = .log)
 }
 
 # utils ----

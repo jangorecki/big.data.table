@@ -5,6 +5,7 @@
 \usage{
 \method{[[}{big.data.table}(x, j, expr, lazy = TRUE, send = FALSE, i, ...,
   simplify = TRUE, rbind = TRUE, parallel = TRUE,
+  outer.aggregate = getOption("bigdatatable.outer.aggregate", FALSE),
   .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
@@ -25,6 +26,8 @@
 \item{rbind}{logical passed to `bdt.eval`, affects the type of returned object.}
 
 \item{parallel}{logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.}
+
+\item{outer.aggregate}{logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc. Also conflicts with filtering in `i`. Can be also a function taking first argument `x` rbinded data.table.}
 
 \item{.log}{logical if *TRUE* then logging will be done using logR to postgres db.}
 
