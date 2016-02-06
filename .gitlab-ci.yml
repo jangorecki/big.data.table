@@ -12,8 +12,8 @@ variables:
 pages:
   script:
     # non-R dependencies
-    - apt-get update -qy
-    - apt-get install -y libpq-dev
+    - apt-get update -qq
+    - apt-get -qq install -y libpq-dev
     # build pkg
     - R CMD build .
     # install deps
