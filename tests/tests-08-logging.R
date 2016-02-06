@@ -1,5 +1,5 @@
 ## for check on localhost use postgres service
-# docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name bgd-logging-test postgres:9.5
+# docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name bdt-logging-test postgres:9.5
 
 # if no gitlab-ci then skip if R client doesn't have logR or cannot connect db ----
 
@@ -51,7 +51,10 @@ r = logR_dump()
 stopifnot(
     nrow(r)==5L,
     r$status=="success",
-    identical(r$out_rows, c(NA, rep(150L, 4)))
+    identical(r$out_rows, c(NA, rep(150L, 4))),
+    substr(r[1L, expr], 1, 36)=="bdt.eval(x, x <- as.data.table(iris)",
+    r[2L, expr]=="x <- as.data.table(iris)",
+    r[2:5, uniqueN(expr)==1L]
 )
 # big.data.table query
 bdt[, lapply(.SD, mean), Species]
@@ -59,34 +62,58 @@ r = logR_dump()
 stopifnot(
     nrow(r)==10L,
     r$status=="success",
-    identical(tail(r$out_rows, 5L), c(NA, rep(3L, 4)))
+    identical(tail(r$out_rows, 5L), c(12L, rep(3L, 4))),
+    substr(r[6L, expr], 1, 56)=="bdt.eval(x, x[, lapply(.SD, mean), Species], lazy = TRUE",
+    r[7L, expr]=="x[, lapply(.SD, mean), Species]",
+    r[7:10, uniqueN(expr)==1L]
 )
 # query with sleep
 bdt[, {Sys.sleep(0.5); .(.N)}]
 r = tail(logR_dump(), 5L)
 stopifnot(
     r$timing > 0.5,
-    which.max(r$timing)==1L
+    which.max(r$timing)==1L,
+    r[1, substr(expr, 1, 17)]=="bdt.eval(x, x[, {",
+    r[2L, expr]=="x[, {\n    Sys.sleep(0.5)\n    .(.N)\n}]",
+    r[2:5, uniqueN(expr)==1L]
 )
-
-# expected deparsed expression
-logr = logR_dump()
+# quoted as expression
+jj = quote(.(Sepal.Length = sum(Sepal.Length)))
+bdt[, jj]
+r = tail(logR_dump(), 5L)
 stopifnot(
-    # parent calls
-    substr(logr[1L, expr], 1, 53)=="rscl.eval(rscl, x <- as.data.table(iris), lazy = TRUE",
-    substr(logr[6L, expr], 1, 60)=="rscl.eval(rscl, x[, lapply(.SD, mean), Species], lazy = TRUE",
-    substr(logr[11L, expr], 1, 66)=="rscl.eval(rscl, x[, {\n    Sys.sleep(0.5)\n    .(.N)\n}], lazy = TRUE",
-    # child calls
-    logr[2L, expr]=="x <- as.data.table(iris)",
-    logr[7L, expr]=="x[, lapply(.SD, mean), Species]",
-    logr[12L, expr]=="x[, {\n    Sys.sleep(0.5)\n    .(.N)\n}]",
-    # all childs equal
-    logr[2:5, uniqueN(expr)==1L],
-    logr[7:10, uniqueN(expr)==1L],
-    logr[12:15, uniqueN(expr)==1L]
+    r[1, substr(expr, 1, 19)] == "bdt.eval(x, x[, jj]",
+    r[2:5, expr] == "x[, jj]",
+    r[2:5, cond_message] == "object 'jj' not found",
+    r[2:5, status] == "error",
+    r[1, status] == "success"
+)
+# substitute quoted
+eval(substitute(bdt[, jj], list(jj = jj)))
+r = tail(logR_dump(), 5L)
+stopifnot(
+    r[1, substr(expr, 1, 19)] == "bdt.eval(x, x[, .(S",
+    r[2:5, expr] == "x[, .(Sepal.Length = sum(Sepal.Length))]",
+    r[2:5, status] == "success",
+    r[1, status] == "success"
+)
+# query with error
+jj = quote({
+    f = function(x) stop("error")
+    .(Sepal.Length = f(Sepal.Length))
+})
+eval(substitute(bdt[, jj], list(jj = jj)))
+r = tail(logR_dump(), 5L)
+stopifnot(
+    r[1, substr(expr, 1, 17)] == "bdt.eval(x, x[, {",
+    r[2:5, substr(expr, 1, 5)] == "x[, {",
+    r[2:5, status] == "error",
+    r[1, status] == "success"
 )
 
-print(logr)
+# print logs to Rout
+r = logR_dump()
+print(r)
 
 # closing workspace ----
 

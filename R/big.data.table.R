@@ -102,6 +102,7 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @param silent should be silently catched by `try` or `logR` if enabled.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
+#' @details The `bdt.eval.log` function is wrapper on `bdt.eval` with `logR()` call, so use only when logR connected.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
 bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(silent), is.logical(.log))
@@ -113,20 +114,13 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
         if(silent) expr = substitute(try(.expr, silent = TRUE), list(.expr=expr))
         if(send) expr = substitute(!inherits(.expr,"try-error"), list(.expr=expr))
     } else {
-        # - [ ] TO DO push down logging to rscl.eval, maybe as `template` argument, it will allow to parse `expr` in `rscl.eval` log entries
-        expr.template = substitute(
+        expr = substitute(
             logR(.expr, alert = .alert, silent = .silent, boolean = .boolean, .log = ..log),
-            list(.alert=!silent, .silent=silent, .boolean = send, ..log=.log)
-        ) # .expr will be substituted 
+            list(.expr = expr, .alert=!silent, .silent = silent, .boolean = send, ..log = .log)
+        )
     }
     # - [x] execute sequentially or parallely
-    # - [x] logging on client side, not substituting `expr`
-    x = if(!.log) rscl.eval(rscl, expr, lazy = FALSE, parallel = parallel, simplify = FALSE) else {
-        eval(substitute(
-            logR(rscl.eval(rscl, .expr, lazy = TRUE, parallel = .parallel, simplify = FALSE, expr.template = .expr.template), silent = FALSE, .log = ..log),
-            list(.expr = expr, .parallel = parallel, .expr.template = expr.template, ..log=.log)
-        ))
-    }
+    x = rscl.eval(rscl, expr, lazy = FALSE, parallel = parallel, simplify = FALSE)
     # - [x] format results: rbind and simplify
     if(rbind && is.data.table(x[[1L]])){
         x = rbindlist(x)
@@ -134,6 +128,27 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
         if(all(sapply(x, length)==1L) && all(sapply(x, is.atomic)) && length(unique(sapply(x, typeof)))==1L) x = simplify2array(x)
     }
     return(x)
+}
+
+#' @rdname bdt.eval
+bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(silent), is.logical(.log))
+    if(lazy) expr = substitute(expr)
+    # - [x] logging on client side
+    if(!.log){
+        if(silent) try(bdt.eval(x = x, expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, silent = TRUE, .log = .log), silent = TRUE) else {
+            bdt.eval(x = x, expr, lazy = FALSE, send = send, parallel = parallel, simplify = simplify, silent = TRUE, .log = .log)
+        }
+    } else {
+        qexpr = substitute(
+            bdt.eval(x, .expr, lazy = TRUE, send = .send, simplify = .simplify, rbind = .rbind, parallel = .parallel, silent = TRUE, .log = ..log),
+            list(.expr = expr, .send = send, .simplify = simplify, .rbind = rbind, .parallel = parallel, ..log = .log)
+        )
+        # it was force silent to nodes, so client side should already catch child errors
+        if(requireNamespace("logR", quietly = TRUE)){
+            logR::logR(expr = qexpr, lazy = FALSE, silent = silent, .log = .log)
+        } else stop("To use logging feature you need to have logR package installed, and connected to postgres database.")
+    }
 }
 
 #' @title big.data.table assign object
@@ -189,7 +204,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
         partition.by = nondotnames(partitions)
         # update partitions
         qcall = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by=partition.by))
-        partitions = unique(bdt.eval(x, expr = qcall, lazy = FALSE, parallel=parallel, .log = .log), by = partition.by)
+        partitions = unique(bdt.eval.log(x, expr = qcall, lazy = FALSE, parallel=parallel, .log = .log), by = partition.by)
         big.data.table(var = "x", rscl = rscl, partitions = partitions)
     } else big.data.table(var = "x", rscl = rscl)
     #' #' @description It can also rearrange data between nodes to update partitioning.
@@ -201,7 +216,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
     #'         cat(sprintf("big.data.table: processing %s of %s nodes.\n", i, nnodes))
     #'         # check if anything to copy
     #'         qcall = substitute(x[!partition.key], list(partition.key=partitions[i]))
-    #'         tmp = bdt.eval(rscl[i], expr = qcall, lazy = FALSE, parallel=FALSE)
+    #'         tmp = bdt.eval.log(rscl[i], expr = qcall, lazy = FALSE, parallel=FALSE)
     #'         if(nrow(tmp)){
     #'             # send it to potentially multiple nodes
     #'             # TO DO: fix, it currently overrides 'x', not rbind to it
@@ -215,7 +230,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
     #' }
     #' if(validate){
     #'     qcall = quote(nrow(unique(x, by = partition.by))==1L)
-    #'     r = bdt.eval(x, expr = qcall, lazy = FALSE, parallel = parallel, .log = .log)
+    #'     r = bdt.eval.log(x, expr = qcall, lazy = FALSE, parallel = parallel, .log = .log)
     #'     if(!all(r)) stop(sprintf("big.data.table partitioning has been finished but validation of data didn't pass for %s nodes.", which(!r)))
     #' }
     # return(x)
@@ -247,7 +262,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
         send = TRUE
     } else send = FALSE
     # - [x] redirect hard work to `bdt.eval`
-    x = bdt.eval(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
+    x = bdt.eval.log(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
     # - [x] when saving to new.var then new big.data.table will be returned
     if(!missing(new.var)){
         return(big.data.table(var = new.var, rscl = rscl))
@@ -283,7 +298,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
         stopifnot(is.numeric(i))
         all.nodes = FALSE
     }
-    bdt.eval(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, .log = .log)
+    bdt.eval.log(rscl[i], expr = expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, .log = .log)
 }
 
 # utils ----

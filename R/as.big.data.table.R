@@ -51,7 +51,7 @@ as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = 
     # execute function on nodes
     assign_x = substitute(x <- qcall, list(qcall = x))
     # populate bdt from call
-    r = bdt.eval(rscl, expr = assign_x, lazy = FALSE, send = TRUE, parallel = parallel, .log = .log)
+    r = bdt.eval.log(rscl, expr = assign_x, lazy = FALSE, send = TRUE, parallel = parallel, .log = .log)
     if(!all(r)) stop(sprintf("Some nodes failed to evaluate expression: %s.", paste(which(!r), collapse=", ")))
     # redirect to .list method
     as.big.data.table.list(x = rscl, partition.by = partition.by, partitions = partitions, parallel = parallel, .log = .log)
@@ -84,7 +84,7 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
     # provided partition.by but not partitions - it will compute partitions
     if(length(partition.by) && !length(partitions)){
         qpartition = substitute(unique(x, by = partition.by)[, c(partition.by), with=FALSE], list(partition.by = partition.by))
-        partitions = unique(bdt.eval(x, expr = qpartition, lazy = FALSE, parallel = parallel, .log = .log), by = partition.by)
+        partitions = unique(bdt.eval.log(x, expr = qpartition, lazy = FALSE, parallel = parallel, .log = .log), by = partition.by)
     }
     # return big.data.table class
     big.data.table(var = "x", rscl = x, partitions = partitions)
@@ -131,5 +131,5 @@ as.big.data.table.data.table = function(x, rscl, partition.by, partitions, paral
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return data.table
 as.data.table.big.data.table = function(x, ..., .log = getOption("bigdatatable.log",FALSE)){
-    bdt.eval(x, x, silent=TRUE, ..., .log = .log)
+    bdt.eval.log(x, x, silent=TRUE, ..., .log = .log)
 }

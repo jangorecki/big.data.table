@@ -13,7 +13,7 @@ f = function(n = 1e5, ...) data.table(year = sample(2011:2014, n, TRUE), high = 
 bdt = as.big.data.table(f, rscl, n = 2e4)
 stopifnot(
     all.equal(dim(bdt), c(8e4, 5L)),
-    all.equal(bdt.eval(bdt, dim(x)), lapply(1:4, function(i) c(2e4, 5L)), check.attributes = FALSE)
+    all.equal(bdt.eval.log(bdt, dim(x)), lapply(1:4, function(i) c(2e4, 5L)), check.attributes = FALSE)
 )
 
 # .call - having cluster working and source data in csv on disk of each node ----
@@ -23,7 +23,7 @@ qcall = substitute(data.table(year = sample(2011:2014, n, TRUE), high = sample(n
 bdt = as.big.data.table(qcall, rscl = rscl)
 stopifnot(
     all.equal(dim(bdt), c(8e4, 5L)),
-    all.equal(bdt.eval(bdt, dim(x)), lapply(1:4, function(i) c(2e4, 5L)), check.attributes = FALSE)
+    all.equal(bdt.eval.log(bdt, dim(x)), lapply(1:4, function(i) c(2e4, 5L)), check.attributes = FALSE)
 )
 
 # .list - having cluster working and loaded with data already ----
@@ -31,7 +31,7 @@ stopifnot(
 bdt = as.big.data.table(rscl)
 stopifnot(
     all.equal(dim(bdt), c(8e4, 5L)),
-    all.equal(bdt.eval(bdt, dim(x)), lapply(1:4, function(i) c(2e4, 5L)), check.attributes = FALSE)
+    all.equal(bdt.eval.log(bdt, dim(x)), lapply(1:4, function(i) c(2e4, 5L)), check.attributes = FALSE)
 )
 
 # .data.table - having data loaded locally in R ----
@@ -68,7 +68,7 @@ stopifnot(
     all.equal(dim(bdt), c(0L,0L)),
     all.equal(capture.output(print(bdt)), "Null data.table (0 rows and 0 cols)"),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(0L,0L,0L,0L)),
+    all.equal(unname(bdt.eval.log(bdt, nrow(x))), c(0L,0L,0L,0L)),
     all.equal(capture.output(str(bdt))[1:2], c("'big.data.table': 0 obs. of 0 variables across 4 nodes", "rows count by node:"))
 )
 # data.table nrow < nodes
@@ -78,7 +78,7 @@ stopifnot(
     length(rscl) > nrow(dt),
     identical(suppressWarnings(capture.output(print(bdt))), c(" a", " 1", "---")), # edge case
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,0L)),
+    all.equal(unname(bdt.eval.log(bdt, nrow(x))), c(1L,1L,1L,0L)),
     all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 3 obs. of 1 variable across 4 nodes:", " $ a: int ", "rows count by node:"))
 )
 # data.table nrow == nodes
@@ -88,7 +88,7 @@ stopifnot(
     length(rscl) == nrow(dt),
     identical(capture.output(print(bdt)), c(" a", " 1", "---", " 4")),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(1L,1L,1L,1L)),
+    all.equal(unname(bdt.eval.log(bdt, nrow(x))), c(1L,1L,1L,1L)),
     all.equal(capture.output(str(bdt))[1:3], c("'big.data.table': 4 obs. of 1 variable across 4 nodes:", " $ a: int ", "rows count by node:"))
 )
 # data.table nrow == nodes+1L
@@ -98,7 +98,7 @@ stopifnot(
     length(rscl)+1L == nrow(dt),
     identical(capture.output(print(bdt)), c(" a", " 1", " 2", "---", " 5")),
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(2L,1L,1L,1L))
+    all.equal(unname(bdt.eval.log(bdt, nrow(x))), c(2L,1L,1L,1L))
 )
 # data.table partition.by cardinality lower than number of nodes
 dt = data.table(a=1:3, b=rnorm(6))
@@ -107,7 +107,7 @@ stopifnot(
     length(rscl)-1L == uniqueN(dt$a),
     (co <- capture.output(str(bdt)))[length(co)]=="'big.data.table' partitioned by 'a'.",
     all(is.big.data.table(bdt, check.nodes = TRUE)),
-    all.equal(unname(bdt.eval(bdt, nrow(x))), c(2L,2L,2L,0L))
+    all.equal(unname(bdt.eval.log(bdt, nrow(x))), c(2L,2L,2L,0L))
 )
 
 # closing workspace ----

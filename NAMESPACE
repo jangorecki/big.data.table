@@ -35,6 +35,7 @@ S3method(as.data.table, big.data.table)
 
 # core
 export(bdt.eval)
+export(bdt.eval.log)
 export(bdt.assign)
 export(bdt.partition)
 

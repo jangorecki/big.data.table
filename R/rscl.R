@@ -54,22 +54,11 @@ rscl.close = function(rscl){
 #' @param lazy logical default TRUE, when FALSE then *x* is quoted or a list of quoted.
 #' @param parallel logical, default FALSE, when TRUE it will auto collect results
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
-#' @param expr.template expression, any `.expr` will be substituted with `x` arg and evaluated as `x`, useful for inject `tryCatch`. Suggested way is to use logR which requires postgres, quite scary thing for many people.
 #' @return Logical matrix.
-rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, parallel = FALSE, simplify = TRUE, expr.template){
+rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, parallel = FALSE, simplify = TRUE){
     stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy), is.logical(parallel), is.logical(simplify))
     expr = if(isTRUE(lazy)) substitute(x) else x
     # - [x] allow to inject any expression and every `.expr` symbol will be substituted with actual `x` expression, a way to push down the logR call for cleaner logs
-    if(isTRUE(getOption("dev"))) browser()
-    if(!missing(expr.template)){
-        expr = eval(substitute(
-            substitute(
-                .expr.template,
-                list(.expr = expr)
-            ),
-            list(.expr.template = substitute(expr.template))
-        ))
-    }
     # returns
     if(parallel){
         invisible(sapply(rscl, RS.eval, expr, wait = FALSE, lazy = FALSE))
