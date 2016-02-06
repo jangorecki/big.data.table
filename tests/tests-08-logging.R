@@ -52,6 +52,7 @@ stopifnot(
     nrow(r)==5L,
     r$status=="success",
     identical(r$out_rows, c(NA, rep(150L, 4))),
+    identical(r$in_rows, rep(NA_integer_, 5)),
     substr(r[1L, expr], 1, 36)=="bdt.eval(x, x <- as.data.table(iris)",
     r[2L, expr]=="x <- as.data.table(iris)",
     r[2:5, uniqueN(expr)==1L]
@@ -63,6 +64,7 @@ stopifnot(
     nrow(r)==10L,
     r$status=="success",
     identical(tail(r$out_rows, 5L), c(12L, rep(3L, 4))),
+    identical(tail(r$in_rows, 5L), c(600L, rep(150L, 4))),
     substr(r[6L, expr], 1, 56)=="bdt.eval(x, x[, lapply(.SD, mean), Species], lazy = TRUE",
     r[7L, expr]=="x[, lapply(.SD, mean), Species]",
     r[7:10, uniqueN(expr)==1L]
@@ -75,7 +77,9 @@ stopifnot(
     which.max(r$timing)==1L,
     r[1, substr(expr, 1, 17)]=="bdt.eval(x, x[, {",
     r[2L, expr]=="x[, {\n    Sys.sleep(0.5)\n    .(.N)\n}]",
-    r[2:5, uniqueN(expr)==1L]
+    r[2:5, uniqueN(expr)==1L],
+    identical(r$out_rows, c(4L, rep(1L, 4))),
+    identical(r$in_rows, c(600L, rep(150L, 4)))
 )
 # quoted as expression
 jj = quote(.(Sepal.Length = sum(Sepal.Length)))
@@ -86,7 +90,9 @@ stopifnot(
     r[2:5, expr] == "x[, jj]",
     r[2:5, cond_message] == "object 'jj' not found",
     r[2:5, status] == "error",
-    r[1, status] == "success"
+    r[1, status] == "success",
+    identical(r$out_rows, rep(NA_integer_, 5)),
+    identical(r$in_rows, c(600L, rep(150L, 4)))
 )
 # substitute quoted
 eval(substitute(bdt[, jj], list(jj = jj)))
@@ -95,7 +101,9 @@ stopifnot(
     r[1, substr(expr, 1, 19)] == "bdt.eval(x, x[, .(S",
     r[2:5, expr] == "x[, .(Sepal.Length = sum(Sepal.Length))]",
     r[2:5, status] == "success",
-    r[1, status] == "success"
+    r[1, status] == "success",
+    identical(r$out_rows, c(4L, rep(1L, 4))),
+    identical(r$in_rows, c(600L, rep(150L, 4)))
 )
 # query with error
 jj = quote({
@@ -108,7 +116,9 @@ stopifnot(
     r[1, substr(expr, 1, 17)] == "bdt.eval(x, x[, {",
     r[2:5, substr(expr, 1, 5)] == "x[, {",
     r[2:5, status] == "error",
-    r[1, status] == "success"
+    r[1, status] == "success",
+    identical(r$out_rows, rep(NA_integer_, 5)),
+    identical(r$in_rows, c(600L, rep(150L, 4)))
 )
 
 # print logs to Rout

@@ -108,6 +108,8 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE, .log = getOption("bigdatatable.log",FALSE)){
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(outer.aggregate) | is.function(outer.aggregate), is.logical(silent), is.logical(.log))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
+    var = if(is.big.data.table(x)) attr(x, "var")
+    in_rows = if(is.big.data.table(x)) call("nrow", as.name(var)) else NA_integer_
     if(lazy) expr = substitute(expr)
     org.expr = expr
     # - [x] logging and error catching for R nodes
@@ -117,8 +119,8 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
         if(send) expr = substitute(!inherits(.expr,"try-error"), list(.expr=expr))
     } else {
         expr = substitute(
-            logR(.expr, alert = .alert, silent = .silent, boolean = .boolean, .log = ..log),
-            list(.expr = expr, .alert=!silent, .silent = silent, .boolean = send, ..log = .log)
+            logR(.expr, alert = .alert, in_rows = .in_rows, silent = .silent, boolean = .boolean, .log = ..log),
+            list(.expr = expr, .in_rows = in_rows, .alert = !silent, .silent = silent, .boolean = send, ..log = .log)
         )
     }
     # - [x] execute sequentially or parallely
@@ -155,10 +157,12 @@ bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbi
             bdt.eval(x, .expr, lazy = TRUE, send = .send, simplify = .simplify, rbind = .rbind, parallel = .parallel, outer.aggregate = .outer.aggregate, silent = TRUE, .log = ..log),
             list(.expr = expr, .send = send, .simplify = simplify, .rbind = rbind, .parallel = parallel, .outer.aggregate = outer.aggregate, ..log = .log)
         )
+        in_rows = if(is.big.data.table(x)) nrow(x) else NA_integer_
         # it was force silent to nodes, so client side should already catch child errors
         if(requireNamespace("logR", quietly = TRUE)){
-            logR::logR(expr = qexpr, lazy = FALSE, silent = silent, .log = .log)
-        } else stop("To use logging feature you need to have logR package installed, and connected to postgres database.")
+            browser()
+            logR::logR(expr = qexpr, lazy = FALSE, in_rows = in_rows, silent = silent, .log = .log)
+        } else stop("To use logging feature you need to have logR package installed, and be connected to postgres database.")
     }
 }
 

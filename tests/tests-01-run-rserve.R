@@ -9,4 +9,5 @@ invisible(lapply(rscl, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rs
 # start cluster
 invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
 
+options("bigdatatable.log" = FALSE) # for interactive running tests
 invisible(TRUE)
