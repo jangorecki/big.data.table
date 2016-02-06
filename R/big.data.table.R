@@ -244,7 +244,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
 #' @param new.var character scalar, name of new variable where query results should be cached.
 #' @param new.copy logical if *TRUE* it will make deep copy while saving to *new.var*.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
-#' @param outer.aggregate logical, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc.
+#' @param outer.aggregate logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc. Also conflicts with filtering in `i`. Can be also a function taking first argument `x` rbinded data.table.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @note Results from nodes are rbinded and the same call is evalated on combined results. That means the column names cannot be renamed or simplified to vector in `...` call. Use `[[.big.data.table` for deeper flexibility.
 #' @return data.table object.
@@ -267,8 +267,15 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
     if(!missing(new.var)){
         return(big.data.table(var = new.var, rscl = rscl))
     }
-    # - [x] aggregate results from nodes with `outer.aggregate` arg
-    if(outer.aggregate) x = eval(dtcall)
+    # - [x] aggregate results from nodes with `outer.aggregate` arg, and a custom function
+    if(is.function(outer.aggregate)){
+        # safe post process
+        x = eval(as.call(list(outer.aggregate, x)))
+    } else if(isTRUE(outer.aggregate)){
+        # that may failed when filtering in `i = package == "data.table"`
+        # also .N, .SD won't work
+        x = eval(dtcall)
+    }
     return(x)
 }
 

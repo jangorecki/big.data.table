@@ -1,5 +1,7 @@
 # big.data.table 0.3.3 (devel)
 
+* TO DO: processing of `outer.aggregate` push down to `bdt.eval` to include in timing of client task.
+* `outer.aggregate` arg can accept function.
 * new function `bdt.eval.log` just for handling logR and nicely parsed expressions to logs.
 * CI moved to `quay.io/jangorecki/r-data.table` for easier rebuilding deps.
 * thanks to above building `logR` is now pushed down to `rscl.eval`, making `expr` log in db more verbose.

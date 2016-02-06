@@ -20,6 +20,22 @@ stopifnot(
     all.equal(bdt[, .(value = sum(value)), .(year, high)], bdt[, .(value = sum(value)), .(year, high), parallel = FALSE])
 )
 
+# outer.aggregate valid use cases: logical and function
+stopifnot(
+    nrow(bdt[, .(value = sum(value)), outer.aggregate = TRUE])==1L,
+    nrow(bdt[, .(value = sum(value)), outer.aggregate = FALSE])==4L,
+    nrow(bdt[, .(value = sum(value))])==4L,
+    nrow(bdt[, .(value = sum(value)), outer.aggregate = function(x) x[, .(value = sum(value))]])==1L,
+    nrow(bdt[, .(value = sum(value)), outer.aggregate = function(x) x[, .(value)]])==4L,
+    all.equal(bdt[, .(value = sum(value)), outer.aggregate = TRUE]$value, sum(bdt[, .(value = sum(value)), year]$value)),
+    all.equal(bdt[, .(value = sum(value)), outer.aggregate = function(x) x[, .(value = sum(value))]]$value, sum(bdt[, .(value = sum(value)), year]$value))
+)
+
+# parallel
+stopifnot(
+    all.equal(bdt[, .(value = sum(value)), .(year, high)], bdt[, .(value = sum(value)), .(year, high), parallel = FALSE])
+)
+
 # closing workspace ----
 
 # cleanup all objects in all nodes, excluding prefixed with dot '.'
