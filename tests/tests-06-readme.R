@@ -61,16 +61,16 @@ stopifnot(
 )
 
 # sequential/parallel sleep
-r1 = system.time(rscl.eval(rscl, Sys.sleep(1)))
+r1 = system.time(rscl.eval(rscl, Sys.sleep(0.1)))
 r2 = system.time({
-    rscl.eval(rscl, Sys.sleep(1), wait = FALSE)
+    rscl.eval(rscl, Sys.sleep(0.1), wait = FALSE)
     rscl.collect(rscl)
 })
-r3 = system.time(rscl.eval(rscl, Sys.sleep(1), parallel = TRUE))
+r3 = system.time(rscl.eval(rscl, Sys.sleep(0.1), parallel = TRUE))
 stopifnot(
-    r1[["elapsed"]] > 3.95,
-    r2[["elapsed"]] < 1.05,
-    r3[["elapsed"]] < 1.05
+    r1[["elapsed"]] > 0.38,
+    r2[["elapsed"]] < 0.12,
+    r3[["elapsed"]] < 0.12
 )
 
 ### Ways to create big.data.table ----

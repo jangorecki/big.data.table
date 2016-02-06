@@ -133,9 +133,9 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
             if(!length(formals(outer.aggregate))) stop("`outer.aggregate` function needs to have at least one argument to accept data.table.")
             x = eval(as.call(list(outer.aggregate, x)))
         } else if(isTRUE(outer.aggregate)){
-            # # that may failed when filtering and aggregate, also .N, .SD won't work
-            x <- tryCatch(eval(org.expr), error = function(e) e)
-            if(inherits(x, "error")) stop(sprintf("Re-calling expression in `outer.aggregate=TRUE` failed, use `outer.aggregate` as function, or operate on re-call'able expressions. Actual error: %s", as.character(e)))
+            # that may failed when filtering and aggregate, also .N, .SD won't work
+            x = tryCatch(eval(org.expr), error = function(e) e)
+            if(inherits(x, "error")) stop(sprintf("Re-calling expression in `outer.aggregate=TRUE` failed, use `outer.aggregate` as function, or operate on re-call'able expressions. Actual error: %s", as.character(x$message)))
         }
     } else if(simplify && length(x) && length(x[[1L]])==1 && is.atomic(x[[1L]])){
         if(all(sapply(x, length)==1L) && all(sapply(x, is.atomic)) && length(unique(sapply(x, typeof)))==1L) x = simplify2array(x)
