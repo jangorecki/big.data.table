@@ -160,7 +160,6 @@ bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbi
         in_rows = if(is.big.data.table(x)) nrow(x) else NA_integer_
         # it was force silent to nodes, so client side should already catch child errors
         if(requireNamespace("logR", quietly = TRUE)){
-            browser()
             logR::logR(expr = qexpr, lazy = FALSE, in_rows = in_rows, silent = silent, .log = .log)
         } else stop("To use logging feature you need to have logR package installed, and be connected to postgres database.")
     }
