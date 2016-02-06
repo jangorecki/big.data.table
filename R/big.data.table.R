@@ -104,10 +104,11 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @details The `bdt.eval.log` function is wrapper on `bdt.eval` with `logR()` call, so use only when logR connected.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
-bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
-    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(silent), is.logical(.log))
+bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, outer.aggregate = FALSE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(outer.aggregate) | is.function(outer.aggregate), is.logical(silent), is.logical(.log))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     if(lazy) expr = substitute(expr)
+    org.expr = expr
     # - [x] logging and error catching for R nodes
     # - [x] when `send` used it will return the boolean status of evaluated expression
     if(!.log){
@@ -124,6 +125,21 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
     # - [x] format results: rbind and simplify
     if(rbind && is.data.table(x[[1L]])){
         x = rbindlist(x)
+        # - [x] aggregate results from nodes with `outer.aggregate` arg, and a custom function
+        if(is.function(outer.aggregate)){
+            # safe post process
+            x = eval(as.call(list(outer.aggregate, x)))
+        } else if(isTRUE(outer.aggregate)){
+            # that may failed when filtering in `i = package == "data.table"`
+            # also .N, .SD won't work
+            if(org.expr[[1L]]==as.name("[")){
+                if(org.expr[[2L]]!=as.name("x")){
+                    warning("Expression has to be adjusted for variable name on client side. Use `outer.aggregate` as function")
+                    org.expr[[2L]] = as.name("x")
+                }
+                x = eval(org.expr)
+            } else stop("`outer.aggregate=TRUE` works only for `[` calls.")
+        }
     } else if(simplify && length(x) && length(x[[1L]])==1 && is.atomic(x[[1L]])){
         if(all(sapply(x, length)==1L) && all(sapply(x, is.atomic)) && length(unique(sapply(x, typeof)))==1L) x = simplify2array(x)
     }
@@ -131,18 +147,18 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
 }
 
 #' @rdname bdt.eval
-bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
-    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(silent), is.logical(.log))
+bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, outer.aggregate = FALSE, silent = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+    stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(outer.aggregate) | is.function(outer.aggregate), is.logical(silent), is.logical(.log))
     if(lazy) expr = substitute(expr)
     # - [x] logging on client side
     if(!.log){
-        if(silent) try(bdt.eval(x = x, expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, silent = TRUE, .log = .log), silent = TRUE) else {
-            bdt.eval(x = x, expr, lazy = FALSE, send = send, parallel = parallel, simplify = simplify, silent = TRUE, .log = .log)
+        if(silent) try(bdt.eval(x = x, expr, lazy = FALSE, send = send, simplify = simplify, rbind = rbind, parallel = parallel, outer.aggregate = outer.aggregate, silent = TRUE, .log = .log), silent = TRUE) else {
+            bdt.eval(x = x, expr, lazy = FALSE, send = send, parallel = parallel, simplify = simplify, outer.aggregate = outer.aggregate, silent = TRUE, .log = .log)
         }
     } else {
         qexpr = substitute(
-            bdt.eval(x, .expr, lazy = TRUE, send = .send, simplify = .simplify, rbind = .rbind, parallel = .parallel, silent = TRUE, .log = ..log),
-            list(.expr = expr, .send = send, .simplify = simplify, .rbind = rbind, .parallel = parallel, ..log = .log)
+            bdt.eval(x, .expr, lazy = TRUE, send = .send, simplify = .simplify, rbind = .rbind, parallel = .parallel, outer.aggregate = .outer.aggregate, silent = TRUE, .log = ..log),
+            list(.expr = expr, .send = send, .simplify = simplify, .rbind = rbind, .parallel = parallel, .outer.aggregate = outer.aggregate, ..log = .log)
         )
         # it was force silent to nodes, so client side should already catch child errors
         if(requireNamespace("logR", quietly = TRUE)){
@@ -262,19 +278,10 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
         send = TRUE
     } else send = FALSE
     # - [x] redirect hard work to `bdt.eval`
-    x = bdt.eval.log(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, .log = .log)
+    x = bdt.eval.log(x, expr = dtcall, send = send, lazy = FALSE, parallel = parallel, outer.aggregate = outer.aggregate, .log = .log)
     # - [x] when saving to new.var then new big.data.table will be returned
     if(!missing(new.var)){
         return(big.data.table(var = new.var, rscl = rscl))
-    }
-    # - [x] aggregate results from nodes with `outer.aggregate` arg, and a custom function
-    if(is.function(outer.aggregate)){
-        # safe post process
-        x = eval(as.call(list(outer.aggregate, x)))
-    } else if(isTRUE(outer.aggregate)){
-        # that may failed when filtering in `i = package == "data.table"`
-        # also .N, .SD won't work
-        x = eval(dtcall)
     }
     return(x)
 }

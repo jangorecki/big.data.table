@@ -5,11 +5,11 @@
 \title{big.data.table evaluate on nodes}
 \usage{
 bdt.eval(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
-  rbind = TRUE, parallel = TRUE, silent = TRUE,
+  rbind = TRUE, parallel = TRUE, outer.aggregate = FALSE, silent = TRUE,
   .log = getOption("bigdatatable.log", FALSE))
 
 bdt.eval.log(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
-  rbind = TRUE, parallel = TRUE, silent = TRUE,
+  rbind = TRUE, parallel = TRUE, outer.aggregate = FALSE, silent = TRUE,
   .log = getOption("bigdatatable.log", FALSE))
 }
 \arguments{
