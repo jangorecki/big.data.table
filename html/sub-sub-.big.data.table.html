@@ -19,6 +19,7 @@
 ## S3 method for class 'big.data.table'
 x[[j, expr, lazy = TRUE, send = FALSE, i, ...,
   simplify = TRUE, rbind = TRUE, parallel = TRUE,
+  outer.aggregate = getOption("bigdatatable.outer.aggregate", FALSE),
   .log = getOption("bigdatatable.log", FALSE)]]
 </pre>
 
@@ -61,6 +62,10 @@ x[[j, expr, lazy = TRUE, send = FALSE, i, ...,
 <tr valign="top"><td><code>parallel</code></td>
 <td>
 <p>logical if parallel *TRUE* (default) it will send expression to nodes using 'wait=FALSE' and collect results afterward executing each node in parallel.</p>
+</td></tr>
+<tr valign="top"><td><code>outer.aggregate</code></td>
+<td>
+<p>logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with '.SD', '.N', etc. Also conflicts with filtering in 'i'. Can be also a function taking first argument 'x' rbinded data.table.</p>
 </td></tr>
 <tr valign="top"><td><code>.log</code></td>
 <td>

@@ -45,7 +45,7 @@ x[..., new.var, new.copy = FALSE,
 </td></tr>
 <tr valign="top"><td><code>outer.aggregate</code></td>
 <td>
-<p>logical, if *TRUE* will able the same query to rbind of results from each node, should not be used with '.SD', '.N', etc.</p>
+<p>logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with '.SD', '.N', etc. Also conflicts with filtering in 'i'. Can be also a function taking first argument 'x' rbinded data.table.</p>
 </td></tr>
 <tr valign="top"><td><code>.log</code></td>
 <td>

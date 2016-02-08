@@ -17,7 +17,11 @@
 
 <pre>
 bdt.eval(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
-  rbind = TRUE, parallel = TRUE, silent = TRUE,
+  rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE,
+  .log = getOption("bigdatatable.log", FALSE))
+
+bdt.eval.log(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
+  rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE,
   .log = getOption("bigdatatable.log", FALSE))
 </pre>
 
@@ -57,11 +61,21 @@ bdt.eval(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE,
 <td>
 <p>should be silently catched by 'try' or 'logR' if enabled.</p>
 </td></tr>
+<tr valign="top"><td><code>outer.aggregate</code></td>
+<td>
+<p>logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with '.SD', '.N', etc. Also conflicts with filtering in 'i'. Can be also a function taking first argument 'x' rbinded data.table.</p>
+</td></tr>
 <tr valign="top"><td><code>.log</code></td>
 <td>
 <p>logical if *TRUE* then logging will be done using logR to postgres db.</p>
 </td></tr>
 </table>
+
+
+<h3>Details</h3>
+
+<p>The 'bdt.eval.log' function is wrapper on 'bdt.eval' with 'logR()' call, so use only when logR connected.
+</p>
 
 
 <h3>Value</h3>
