@@ -254,7 +254,7 @@ rm(r, dt)
 rscl.ls(rscl)
 ```
 
-## Using logR ----
+## Using logR
 
 `big.data.table` can log its processing in quite detailed grain.  
 For single `[.big.data.table` query on 4 nodes there are 10 database hits made. This is a consequence of *transactional logging* which insert log entry to db, evaluate R expression and then updates log i db.  
@@ -262,7 +262,7 @@ Logging is by deault disabled because it requires working postgres database inst
 
 If you don't have postgres database but you do have docker you can run postgres with this command.  
 ```
-docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg postgres:9.5
+docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg-logr postgres:9.5
 ```
 
 ```r
@@ -274,7 +274,7 @@ logR_connect()
 rscl.eval(rscl, logR_connect(quoted = TRUE), lazy = FALSE)
 
 # create logR db objects, run only once
-logR_schema()
+logR_schema(drop=TRUE)
 
 # turn logging on
 op = options("bigdatatable.log" = TRUE)

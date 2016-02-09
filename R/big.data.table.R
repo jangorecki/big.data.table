@@ -119,8 +119,8 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
         if(send) expr = substitute(!inherits(.expr,"try-error"), list(.expr=expr))
     } else {
         expr = substitute(
-            logR(.expr, alert = .alert, in_rows = .in_rows, silent = .silent, boolean = .boolean, .log = ..log),
-            list(.expr = expr, .in_rows = in_rows, .alert = !silent, .silent = silent, .boolean = send, ..log = .log)
+            logR(.expr, parent = .parent, alert = .alert, in_rows = .in_rows, silent = .silent, boolean = .boolean, .log = ..log),
+            list(.expr = expr, .parent = getOption("logR.id"), .in_rows = in_rows, .alert = !silent, .silent = silent, .boolean = send, ..log = .log)
         )
     }
     # - [x] execute sequentially or parallely
@@ -160,7 +160,7 @@ bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbi
         in_rows = if(is.big.data.table(x)) nrow(x) else NA_integer_
         # it was force silent to nodes, so client side should already catch child errors
         if(requireNamespace("logR", quietly = TRUE)){
-            logR::logR(expr = qexpr, lazy = FALSE, in_rows = in_rows, silent = silent, .log = .log)
+            logR::logR(expr = qexpr, lazy = FALSE, parent = getOption("logR.id"), in_rows = in_rows, silent = silent, .log = .log)
         } else stop("To use logging feature you need to have logR package installed, and be connected to postgres database.")
     }
 }

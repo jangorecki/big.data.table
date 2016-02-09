@@ -1,5 +1,6 @@
 # big.data.table 0.3.3 (devel)
 
+* support for hierarchical logging in `logR`.
 * logging of `in_rows` in nodes and client included in logR call.
 * processing of `outer.aggregate` push down to `bdt.eval` to include in timing of client task.
 * `outer.aggregate` arg can accept function.

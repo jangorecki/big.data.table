@@ -9,5 +9,5 @@ Description: New big.data.table class which behaves like data.table but distribu
 URL: https://gitlab.com/jangorecki/big.data.table
 Imports: data.table (>= 1.9.6), Rserve, RSclient
 License: GPL-3
-Suggests: logR (>= 2.1.3)
+Suggests: logR (>= 2.1.5)
 Additional_repositories: https://jangorecki.github.io/logR, https://olafmersmann.github.io/drat
