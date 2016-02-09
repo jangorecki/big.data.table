@@ -1,8 +1,8 @@
 Package: big.data.table
 Version: 0.3.3
 Imports: data.table (>= 1.9.6), Rserve, RSclient
-Suggests: logR (>= 2.1.3)
+Suggests: logR (>= 2.1.5)
 License: GPL-3
-MD5sum: 07c3baa6f9019d8851882b5c094c7e68
+MD5sum: b6af3994e787858eea39342b8567365f
 NeedsCompilation: no
 
