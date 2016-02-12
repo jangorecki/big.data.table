@@ -10,7 +10,7 @@ invisible(Rserve(debug = FALSE, port = 23312L, args = c("--no-save")))
 rsc = rscl.connect(port = c(23311:23312))
 rscl.require(rsc, package = c("data.table","big.data.table"))
 
-# rsc - big.data.table gateway nested in length 1L list()
+# rsc - big.data.table gateways to data, usually length 1L (testing on length 2L, so x2 gives 8 R nodes)
 # rscl - list of nodes
 qsetup = quote({
     rscl = rscl.connect(port = 33311:33314)
@@ -22,7 +22,7 @@ qsetup = quote({
 rscl.eval(rsc, qsetup, lazy = FALSE)
 
 rvar = rscl.eval(rsc, rscl.ls(rscl))
-r = rbindlist(rscl.eval(rsc, bdt[, lapply(.SD, mean), Species], simplify = FALSE))
+r = rbindlist(rscl.eval(rsc, bdt[, lapply(.SD, mean), Species], simplify = FALSE)) # binding results from 2 gateways
 
 stopifnot(
     all(rvar=="x"),
