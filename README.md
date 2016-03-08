@@ -6,7 +6,7 @@ Below commands will install latest big.data.table with its dependencies.
 
 ```r
 install.packages(c("RSclient","Rserve"), repos = "https://rforge.net")
-install.packages("data.table", repos = "https://cran.rstudio.com")
+install.packages("data.table", repos = "https://Rdatatable.github.io/data.table")
 install.packages("big.data.table", repos = "http://jangorecki.gitlab.io/big.data.table")
 ```
 

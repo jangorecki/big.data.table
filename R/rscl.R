@@ -43,7 +43,7 @@ rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.get
 #' @description A wrapper to `RS.close`.
 #' @param rscl lists of Rserve connections.
 rscl.close = function(rscl){
-    sapply(rscl, RS.close)
+    invisible(sapply(rscl, RS.close))
 }
 
 #' @title Eval on list of Rserve instances
@@ -82,9 +82,9 @@ rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait 
     # returns
     if(parallel){
         invisible(sapply(rscl, RS.assign, name = name, value = value, wait = FALSE))
-        rscl.collect(rscl, simplify = simplify)
+        invisible(rscl.collect(rscl, simplify = simplify))
     } else {
-        sapply(rscl, RS.assign, name = name, value = value, wait = wait, simplify = simplify)
+        invisible(sapply(rscl, RS.assign, name = name, value = value, wait = wait, simplify = simplify))
     }
 }
 

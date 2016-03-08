@@ -23,7 +23,7 @@ stopifnot(all.equal(r1, r2), sapply(r1, length)==0L)
 
 # populate data on R node site
 qdf = quote({
-    x <- data.frame(a = sample(letters,100,TRUE), b = rnorm(100))
+    x <- data.frame(a = sample(letters,100,TRUE), b = rnorm(100), stringsAsFactors = FALSE)
     TRUE # to avoid collection of `<-` call
 })
 r = rscl.eval(rscl, qdf, lazy = FALSE)
@@ -36,7 +36,7 @@ stopifnot(length(r)==16L)
 
 # sum by group
 df.r = rscl.eval(rscl, aggregate(b ~ a, x, sum), simplify = FALSE)
-r1 = rbindlist(df.r)[, .(b = sum(b)), a]
+r1 = rbindlist(df.r)[, .(b = sum(b)),, a]
 
 # using data.table
 rscl.require(rscl, "data.table")
