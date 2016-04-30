@@ -27,6 +27,7 @@ S3method(as.big.data.table, "function")
 S3method("[", big.data.table)
 S3method("[[", big.data.table)
 S3method(dim, big.data.table)
+S3method(names, big.data.table)
 S3method(str, big.data.table)
 S3method(print, big.data.table)
 

@@ -46,7 +46,7 @@ stopifnot(
     all.equal(nrow(bdt),1e5L),
     all.equal(ncol(bdt),5L),
     all.equal(unlist(unique(bdt[[expr = names(x), simplify = TRUE]])), c("year", "high", "normal", "low", "value")),
-    all.equal(names(bdt), character()),
+    all.equal(names(bdt), c("year", "high", "normal", "low", "value")),
     all.equal(dim(bdt[, .N, year][, sum(N), year]), c(4L,2L))
 )
 

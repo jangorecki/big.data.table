@@ -1,4 +1,4 @@
-image: quay.io/jangorecki/r-data.table
+image: docker.io/jangorecki/r-data.table
 services:
 - postgres
 
@@ -17,22 +17,17 @@ pages:
     # build pkg
     - R CMD build .
     # install deps
-    - Rscript -e 'install.packages("RPostgreSQL", repos = "https://cran.rstudio.com")'
+    - Rscript -e 'install.packages("RPostgreSQL", repos="https://cran.rstudio.com")'
     # install suggests
-    - Rscript -e 'install.packages(c("microbenchmarkCore","logR"), repos = paste0("https://", c("cran.rstudio.com","olafmersmann.github.io/drat","jangorecki.gitlab.io/logR")))'
+    - Rscript -e 'install.packages(c("microbenchmarkCore","logR"), repos=paste0("https://", c("cran.rstudio.com","olafmersmann.github.io/drat","jangorecki.gitlab.io/logR")))'
     # run check
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-build-vignettes --no-manual --as-cran
-    # gl-pages dir and Rcheck results dir
-    - mkdir public Rcheck
     # install drat with `insertArtifacts` function
-    - Rscript -e 'install.packages("drat", repos = "https://jangorecki.gitlab.io/drat")'
+    - Rscript -e 'install.packages("drat", repos="https://jangorecki.gitlab.io/drat")'
     # produce artifacts
-    - Rscript -e 'drat::insertArtifacts(repodir = "public", repo.url = "https://jangorecki.gitlab.io/big.data.table", repo.cran = TRUE)'
-    # export Rcheck results
-    - mv $(find . -maxdepth 1 -name "*.Rcheck" -type d) Rcheck
+    - Rscript -e 'drat::insertArtifacts(repodir="public", repo.url="https://jangorecki.gitlab.io/big.data.table", repo.cran=TRUE)'
   only:
     - master
   artifacts:
     paths:
-      - Rcheck
       - public

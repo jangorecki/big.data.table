@@ -190,11 +190,12 @@ ncol(bdt)
 bdt[, .N]
 bdt[, .(.N)]
 
-# to be addressed by wrappers
 # col names
-RS.eval(rscl[[1L]], names(x))
-# col class
+names(bdt)
+# col classes
 RS.eval(rscl[[1L]], lapply(x, class))
+# or
+lapply(core.data.table(bdt), class)
 
 # `[.big.data.table` - `new.var` create new big.data.table from existing one
 

@@ -1,7 +1,7 @@
 
 # big.data.table ----
 
-big.data.table = function(var = "x", rscl, partitions){
+big.data.table = function(var = "x", rscl, partitions) {
     stopifnot(is.character(var), is.rscl(rscl, silent=FALSE))
     if(!missing(partitions) && !is.null(partitions)){
         stopifnot(is.data.table(partitions))
@@ -25,14 +25,14 @@ big.data.table = function(var = "x", rscl, partitions){
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @note Supported `x` data types are *data.table* (will be automatically spread across the nodes), *function* or quoted *call* will be evaluated on each node and assigned to `x` variable, a *list* will struct big.data.table on already working set of nodes, all having `x` data.tables.
 #' @return big.data.table object.
-as.big.data.table = function(x, ...){
+as.big.data.table = function(x, ...) {
     UseMethod("as.big.data.table")
 }
 
 # .function - having cluster working and source data available to each node
 
 #' @rdname as.big.data.table
-as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)){
+as.big.data.table.function = function(x, rscl, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)) {
     # assign function to nodes
     fun.var = substitute(x)
     if(!is.name(fun.var)) stop("Function provided as 'x' arg must not be an anonymous function, assign it to variable locally and pass the variable to 'x'.")
@@ -47,7 +47,7 @@ as.big.data.table.function = function(x, rscl, partition.by, partitions, paralle
 # .call - having cluster working and source data available to each node
 
 #' @rdname as.big.data.table
-as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)){
+as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)) {
     # execute function on nodes
     assign_x = substitute(x <- qcall, list(qcall = x))
     # populate bdt from call
@@ -60,7 +60,7 @@ as.big.data.table.call = function(x, rscl, partition.by, partitions, parallel = 
 # .list - having cluster working and loaded with data already
 
 #' @rdname as.big.data.table
-as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)){
+as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)) {
     stopifnot(is.rscl(x, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table
     if(missing(partitions) || !length(partitions)) partitions = data.table(NULL)
@@ -93,7 +93,7 @@ as.big.data.table.list = function(x, partition.by, partitions, parallel = TRUE, 
 # .data.table - having data loaded locally in R
 
 #' @rdname as.big.data.table
-as.big.data.table.data.table = function(x, rscl, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)){
+as.big.data.table.data.table = function(x, rscl, partition.by, partitions, parallel = TRUE, ..., .log = getOption("bigdatatable.log",FALSE)) {
     stopifnot(is.rscl(rscl, silent=FALSE))
     # general check for partition.by and partitions in creation of big.data.table
     if(missing(partitions) || !length(partitions)) partitions = data.table(NULL)
@@ -130,6 +130,6 @@ as.big.data.table.data.table = function(x, rscl, partition.by, partitions, paral
 #' @param \dots arguments passed to `bdt.eval`.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return data.table
-as.data.table.big.data.table = function(x, ..., .log = getOption("bigdatatable.log",FALSE)){
+as.data.table.big.data.table = function(x, ..., .log = getOption("bigdatatable.log",FALSE)) {
     bdt.eval.log(x, x, silent=TRUE, ..., .log = .log)
 }

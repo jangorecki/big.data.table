@@ -15,7 +15,7 @@ NULL
 #' @param x R object.
 #' @param check.nodes logical default FALSE, when TRUE it will validate that nodes have data.table as defined variable.
 #' @return For `check.nodes=FALSE` (default) a scalar logical if *x* inherits from *big.data.table*. For `check.nodes=TRUE` vector of results from expression `exists("x") && is.data.table(x)` on each node.
-is.big.data.table = function(x, check.nodes = FALSE){
+is.big.data.table = function(x, check.nodes = FALSE) {
     if(!inherits(x, "big.data.table")) return(FALSE)
     if(!check.nodes) return(TRUE)
     var = attr(x, "var")
@@ -24,7 +24,16 @@ is.big.data.table = function(x, check.nodes = FALSE){
     rscl.eval(rscl, is.node, lazy = FALSE)
 }
 
-dim.big.data.table = function(x){
+names.big.data.table = function(x) {
+    nodes.ok = is.big.data.table(x, check.nodes = TRUE)
+    var = attr(x, "var")
+    rscl = attr(x, "rscl")
+    if(!all(nodes.ok)) stop(sprintf("Variable '%s' data.table does not exist on %s nodes.", var, paste(which(!nodes.ok), collapse = ", ")))
+    namesq = substitute(names(.x), list(.x = as.name(var)))
+    rscl.eval(rscl[1L], namesq, lazy = FALSE, simplify = FALSE)[[1L]]
+}
+
+dim.big.data.table = function(x) {
     nodes.ok = is.big.data.table(x, check.nodes = TRUE)
     var = attr(x, "var")
     rscl = attr(x, "rscl")
@@ -37,7 +46,7 @@ dim.big.data.table = function(x){
     c(sum(nr), nc[[1L]])
 }
 
-print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quote = FALSE, ...){
+print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quote = FALSE, ...) {
     dims = dim(x)
     if(dims[[1L]] == 0L) {
         if(dims[[2L]]==0L){
@@ -64,7 +73,7 @@ print.big.data.table = function(x, topn = getOption("datatable.print.topn"), quo
     return(invisible())
 }
 
-str.big.data.table = function(object, unclass = FALSE, ...){
+str.big.data.table = function(object, unclass = FALSE, ...) {
     var = attr(object, "var")
     rscl = attr(object, "rscl")
     if(unclass){
@@ -105,7 +114,7 @@ str.big.data.table = function(object, unclass = FALSE, ...){
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @details The `bdt.eval.log` function is wrapper on `bdt.eval` with `logR()` call, so use only when logR connected.
 #' @return Depending on *simplify, rbind* the results of evaluated expression.
-bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE, .log = getOption("bigdatatable.log",FALSE)){
+bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE, .log = getOption("bigdatatable.log",FALSE)) {
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(outer.aggregate) | is.function(outer.aggregate), is.logical(silent), is.logical(.log))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
     var = if(is.big.data.table(x)) attr(x, "var")
@@ -144,7 +153,7 @@ bdt.eval = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind =
 }
 
 #' @rdname bdt.eval
-bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE, .log = getOption("bigdatatable.log",FALSE)){
+bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbind = TRUE, parallel = TRUE, silent = TRUE, outer.aggregate = FALSE, .log = getOption("bigdatatable.log",FALSE)) {
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = TRUE), is.logical(lazy), is.logical(send), is.logical(simplify), is.logical(rbind), is.logical(parallel), is.logical(outer.aggregate) | is.function(outer.aggregate), is.logical(silent), is.logical(.log))
     if(lazy) expr = substitute(expr)
     # - [x] logging on client side
@@ -172,7 +181,7 @@ bdt.eval.log = function(x, expr, lazy = TRUE, send = FALSE, simplify = TRUE, rbi
 #' @param value an R object to save on node, if it is data.table then it will be partitioned into chunks, if not partition defined it will make equal rows chunks.
 #' @param parallel logical if parallel *TRUE* (default) it will send expression to nodes using `wait=FALSE` and collect results afterward executing each node in parallel.
 #' @param .log currently ignored.
-bdt.assign = function(x, name, value, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+bdt.assign = function(x, name, value, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)) {
     # TO DO: add logging + tests
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
@@ -207,7 +216,7 @@ bdt.assign = function(x, name, value, parallel = TRUE, .log = getOption("bigdata
 #' @param parallel, see `bdt.eval`.
 #' @param .log passed to `bdt.eval`.
 #' @return big.data.table object.
-bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)){
+bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("bigdatatable.log",FALSE)) {
     # TO DO: add logging + update `.log` arg doc + tests
     stopifnot(is.big.data.table(x) || is.rscl(x, silent = FALSE))
     rscl = if(is.big.data.table(x)) attr(x, "rscl") else x
@@ -262,7 +271,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @note Results from nodes are rbinded and the same call is evalated on combined results. That means the column names cannot be renamed or simplified to vector in `...` call. Use `[[.big.data.table` for deeper flexibility.
 #' @return data.table object.
-"[.big.data.table" = function(x, ..., new.var, new.copy = FALSE, parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",FALSE), .log = getOption("bigdatatable.log",FALSE)){
+"[.big.data.table" = function(x, ..., new.var, new.copy = FALSE, parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",FALSE), .log = getOption("bigdatatable.log",FALSE)) {
     dtq = match.call(expand.dots = FALSE)$`...`
     rscl = attr(x, "rscl", exact = TRUE)
     var = attr(x, "var", exact = TRUE)
@@ -298,7 +307,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
 #' @param outer.aggregate logical or a function, if *TRUE* will able the same query to rbind of results from each node, should not be used with `.SD`, `.N`, etc. Also conflicts with filtering in `i`. Can be also a function taking first argument `x` rbinded data.table.
 #' @param .log logical if *TRUE* then logging will be done using logR to postgres db.
 #' @return When using *j* arg the 0 length variable from underlying data is returned. Otherwise the results from expression evaluated as *lapply*. When using *rbind* or *simplify* the returned list be can simplified.
-"[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",FALSE), .log = getOption("bigdatatable.log",FALSE)){
+"[[.big.data.table" = function(x, j, expr, lazy = TRUE, send = FALSE, i, ..., simplify = TRUE, rbind = TRUE, parallel = TRUE, outer.aggregate = getOption("bigdatatable.outer.aggregate",FALSE), .log = getOption("bigdatatable.log",FALSE)) {
     # when `j` provided it return empty column from bdt to get a class of column
     if(!missing(j) && !is.null(j) && length(j)==1L && (is.numeric(j) || is.character(j))) return(core.data.table(x)[[j]])
     if(isTRUE(lazy)) expr = substitute(expr)
@@ -316,7 +325,7 @@ bdt.partition = function(x, partition.by, parallel = TRUE, .log = getOption("big
 
 # utils ----
 
-nondotnames = function(x){
+nondotnames = function(x) {
     nm = names(x)
     nm[!sapply(nm, substr, 1L, 1L)=="."]
 }
@@ -329,14 +338,14 @@ nondotnames = function(x){
 #' @param use.names logical passed to `rbindlist`.
 #' @param fill logical passed to `rbindlist`.
 #' @param idcol logical or  character passed to `rbindlist`.
-rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL){
+rbindlapply = function(X, FUN, ..., use.names = fill, fill = FALSE, idcol = NULL) {
     rbindlist(lapply(X = X, FUN = FUN, ... = ...), use.names=use.names, fill=fill, idcol=idcol)
 }
 
 #' @title Core of data.table from nodes
 #' @param x big.data.table
 #' @return 0 rows data.table class object, rbind of each 0L subsets.
-core.data.table = function(x){
+core.data.table = function(x) {
     stopifnot(is.big.data.table(x))
     var = attr(x, "var")
     rscl = attr(x, "rscl")

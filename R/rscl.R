@@ -10,7 +10,7 @@
 #' @param proxy.wait logical, see `?RSclient::RS.connect` for details.
 #' @param pkgs character vector of packages to load after connect to node.
 #' @return List of active connections to Rserve nodes.
-rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.getenv("RSERVE_HOST", "127.0.0.1"), tls = FALSE, proxy.target = NULL, proxy.wait = TRUE, pkgs = character()){
+rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.getenv("RSERVE_HOST", "127.0.0.1"), tls = FALSE, proxy.target = NULL, proxy.wait = TRUE, pkgs = character()) {
     # - [x] nice recycling of attributes to easy setup set of nodes
     lp = length(port)
     lh = length(host)
@@ -42,7 +42,7 @@ rscl.connect = function(port = Sys.getenv("RSERVE_PORT", "6311"), host = Sys.get
 #' @title Disconnect from Rserve instances
 #' @description A wrapper to `RS.close`.
 #' @param rscl lists of Rserve connections.
-rscl.close = function(rscl){
+rscl.close = function(rscl) {
     invisible(sapply(rscl, RS.close))
 }
 
@@ -55,7 +55,7 @@ rscl.close = function(rscl){
 #' @param parallel logical, default FALSE, when TRUE it will auto collect results
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @return Logical matrix.
-rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, parallel = FALSE, simplify = TRUE){
+rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy = TRUE, parallel = FALSE, simplify = TRUE) {
     stopifnot(is.list(rscl), is.logical(wait), is.logical(lazy), is.logical(parallel), is.logical(simplify))
     expr = if(isTRUE(lazy)) substitute(x) else x
     # - [x] allow to inject any expression and every `.expr` symbol will be substituted with actual `x` expression, a way to push down the logR call for cleaner logs
@@ -77,7 +77,7 @@ rscl.eval = function(rscl = getOption("bigdatatable.rscl"), x, wait = TRUE, lazy
 #' @param parallel logical, default FALSE, when TRUE it will auto collect results
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @return Results from `RS.assign` in `sapply`.
-rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE, parallel = FALSE, simplify = TRUE){
+rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait = TRUE, parallel = FALSE, simplify = TRUE) {
     stopifnot(is.list(rscl), is.character(name), is.logical(wait), is.logical(parallel), is.logical(simplify))
     # returns
     if(parallel){
@@ -95,7 +95,7 @@ rscl.assign = function(rscl = getOption("bigdatatable.rscl"), name, value, wait 
 #' @param try logical default TRUE, will wrap collection into `try` to finish collection from all nodes instead of aborting on error.
 #' @param simplify logical, default TRUE, passed to underlying `sapply`.
 #' @return Results from `try` `RS.collect` from each node, simplified if possible.
-rscl.collect = function(rscl = getOption("bigdatatable.rscl"), timeout = Inf, detail = FALSE, try = TRUE, simplify = TRUE){
+rscl.collect = function(rscl = getOption("bigdatatable.rscl"), timeout = Inf, detail = FALSE, try = TRUE, simplify = TRUE) {
     if(try){
         sapply(rscl, function(rsc) base::try(RS.collect(rsc, timeout = timeout, detail = detail), silent=TRUE), simplify = simplify)
     } else {
@@ -109,7 +109,7 @@ rscl.collect = function(rscl = getOption("bigdatatable.rscl"), timeout = Inf, de
 #' @param x a list
 #' @param silent logical default TRUE, if FALSE then error are raised if list is not Rserve connections list.
 #' @return TRUE, FALSE or raise error if `silent=FALSE`.
-is.rscl = function(x, silent=TRUE){
+is.rscl = function(x, silent=TRUE) {
     if(silent) return(is.list(x) && length(x) && all(sapply(x, inherits, "RserveConnection")))
     if(!is.list(x)) stop(sprintf("Rserve connection list must be of type list."))
     if(!length(x)) stop(sprintf("Rserve connection list cannot have 0 length."))
@@ -121,14 +121,14 @@ is.rscl = function(x, silent=TRUE){
 #' @param rscl list of connections to R nodes
 #' @param simplify logical default TRUE passed to `sapply`.
 #' @return `ls()` of `.GlobalEnv` from each node.
-rscl.ls = function(rscl = getOption("bigdatatable.rscl"), simplify = TRUE){
+rscl.ls = function(rscl = getOption("bigdatatable.rscl"), simplify = TRUE) {
     rscl.eval(rscl, ls(envir = .GlobalEnv), simplify = simplify)
 }
 
 #' @title `ls.str` on every node
 #' @param rscl list of connections to R nodes
 #' @return Prints of `ls.str` on all nodes as side effect
-rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")){
+rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")) {
     prntl = rscl.eval(rscl, capture.output(print(ls.str(envir = .GlobalEnv))), simplify = FALSE)
     nm = names(prntl)
     if(is.null(nm)) nm = seq_along(prntl)
@@ -142,7 +142,7 @@ rscl.ls.str = function(rscl = getOption("bigdatatable.rscl")){
 #' @param package character vector of packages to require on each of R node.
 #' @param quietly logical defaul TRUE, no warning.
 #' @return Logical matrix.
-rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly = TRUE){
+rscl.require = function(rscl = getOption("bigdatatable.rscl"), package, quietly = TRUE) {
     stopifnot(is.rscl(rscl), is.character(package), length(package) > 0L, is.logical(quietly))
     # workaround for CHECK warning when use "require" directly
     require_call = function(package, quietly){

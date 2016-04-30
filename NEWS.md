@@ -1,5 +1,6 @@
-# big.data.table 0.3.3 (devel)
+# big.data.table 0.3.4
 
+* added `names` method for big.data.table
 * unit tests for nested R nodes allowing to use Rserve as gateway having `big.data.table` class.
 * support for hierarchical logging in `logR`.
 * logging of `in_rows` in nodes and client included in logR call.
