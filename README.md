@@ -1,3 +1,5 @@
+# big.data.table [![Build Status](https://gitlab.com/jangorecki/big.data.table/badges/master/build.svg)](https://gitlab.com/jangorecki/big.data.table/builds)
+
 Distributed parallel computing on data.table.  
 
 # Installation
@@ -16,14 +18,14 @@ Below are two options to start Rserve nodes. Follow with the second option for r
 
 ## Run nodes as docker services
 
-You can use docker image based on Ubuntu 14.04 configured for `big.data.table`, image details: [jangorecki/r-data.table-pg](https://hub.docker.com/r/jangorecki/r-data.table-pg).  
+You can use docker image based on Ubuntu 14.04 configured for `big.data.table`, image details: [jangorecki/r-data.table](https://hub.docker.com/r/jangorecki/r-data.table).  
 It may be useful for fast ad-hoc remote environment setup R nodes. Commands will also work locally if you have docker installed.  
 
 ```sh
-docker run -d -h rnode11 -p 33311:6311 --name=rnode11 jangorecki/r-data.table-pg
-docker run -d -h rnode12 -p 33312:6311 --name=rnode12 jangorecki/r-data.table-pg
-docker run -d -h rnode13 -p 33313:6311 --name=rnode13 jangorecki/r-data.table-pg
-docker run -d -h rnode14 -p 33314:6311 --name=rnode14 jangorecki/r-data.table-pg
+docker run -d -h rnode11 -p 33311:6311 --name=rnode11 jangorecki/r-data.table
+docker run -d -h rnode12 -p 33312:6311 --name=rnode12 jangorecki/r-data.table
+docker run -d -h rnode13 -p 33313:6311 --name=rnode13 jangorecki/r-data.table
+docker run -d -h rnode14 -p 33314:6311 --name=rnode14 jangorecki/r-data.table
 ```
 
 ## Run nodes from R
